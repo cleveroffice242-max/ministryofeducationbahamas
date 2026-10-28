@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stories & Media - MOEST Bahamas Media Command Center</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bahama: { aqua: '#00778B', aqualight: '#00A3C4', gold: '#FCD116', navy: '#0B192C', darkcard: '#1E293B' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="/assets/common.js"></script>
+
+  <style>
+    .story-body p { margin-bottom: 0.9rem; }
+    .story-body p:last-child { margin-bottom: 0; }
+    .story-flash { animation: flash 2.2s ease-out; }
+    @keyframes flash {
+      0% { box-shadow: 0 0 0 3px rgba(252, 209, 22, 0.9); }
+      100% { box-shadow: 0 0 0 3px rgba(252, 209, 22, 0); }
+    }
+    html { scroll-padding-top: 8rem; }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 min-h-screen flex flex-col font-sans">
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-30 shadow-md">
+    <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+        <a href="/" class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-lg bg-bahama-aqua flex items-center justify-center text-white shadow-lg shadow-bahama-aqua/30">
+            <i class="fa-solid fa-landmark text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-bold leading-none text-slate-900 dark:text-white">MOEST Bahamas</h1>
+              <span class="bg-bahama-aqua/10 text-bahama-aqua dark:bg-bahama-aqua/20 text-[11px] font-semibold px-2 py-0.5 rounded border border-bahama-aqua/30">Official Intelligence</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Stories & Media Library</p>
+          </div>
+        </a>
+        <div class="flex items-center space-x-3">
+          <button onclick="openStoryModal()" class="flex items-center space-x-2 bg-bahama-gold text-slate-950 hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+            <i class="fa-solid fa-plus"></i><span class="hidden sm:inline">Log New Story</span>
+          </button>
+          <button onclick="toggleTheme()" aria-label="Toggle theme" class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+            <i class="fa-solid fa-moon dark:hidden"></i>
+            <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <nav id="appTabs" data-active="stories"></nav>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+    <!-- Intro + filters -->
+    <section class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 mb-6">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold">News & Social Media Stories</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+            Every monitored story in full — photos, video, the complete write-up, a direct link to the original source, and related links added by the team.
+          </p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+          <div class="relative sm:w-72">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input id="storySearch" type="search" placeholder="Search stories, outlets, hashtags..." aria-label="Search stories"
+              class="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs focus:ring-2 focus:ring-bahama-aqua placeholder-slate-400">
+          </div>
+          <select id="channelFilter" aria-label="Filter by channel" class="bg-slate-100 dark:bg-slate-800 text-xs border-none rounded-lg px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
+            <option value="ALL">All channels</option>
+            <option>News</option><option>Facebook</option><option>X</option><option>Instagram</option><option>YouTube</option><option>TikTok</option><option>Other</option>
+          </select>
+          <select id="sentimentFilter" aria-label="Filter by sentiment" class="bg-slate-100 dark:bg-slate-800 text-xs border-none rounded-lg px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
+            <option value="ALL">All sentiments</option>
+            <option value="POSITIVE">Positive (+)</option>
+            <option value="NEUTRAL">Neutral (=)</option>
+            <option value="NEGATIVE">Negative (-)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
+      <!-- Story index -->
+      <aside class="lg:sticky lg:top-36 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-3 hidden lg:block max-h-[calc(100vh-10rem)] overflow-y-auto">
+        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-2 py-1.5">In this library <span id="storyCount" class="text-bahama-aqua"></span></p>
+        <ol id="storyIndex" class="space-y-0.5"></ol>
+      </aside>
+
+      <!-- Full stories -->
+      <div id="storiesList" class="space-y-6 min-w-0">
+        <div class="text-center py-16 text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Loading stories…</div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-8 text-xs text-center text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <p>© 2026 Ministry of Education, Science and Technology (MOEST), Commonwealth of The Bahamas.</p>
+      <span>Communications Section Intelligence Unit</span>
+    </div>
+  </footer>
+
+  <!-- PHOTO LIGHTBOX -->
+  <div id="lightbox" class="fixed inset-0 z-[60] bg-black/90 hidden items-center justify-center p-4" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <button class="absolute top-4 right-4 text-white/80 hover:text-white text-2xl" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <figure class="max-w-6xl w-full" onclick="event.stopPropagation()">
+      <img id="lightboxImg" src="" alt="" class="max-h-[85vh] w-auto mx-auto rounded-lg shadow-2xl">
+      <figcaption id="lightboxCaption" class="text-center text-xs text-slate-300 mt-3"></figcaption>
+    </figure>
+  </div>
+
+  <!-- ADD / EDIT STORY MODAL -->
+  <div id="storyModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-start sm:items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="storyModalTitle">
+    <form id="storyForm" class="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 my-8">
+      <div class="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 id="storyModalTitle" class="text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-newspaper text-bahama-aqua"></i> <span>Log New Story</span></h3>
+          <p class="text-xs text-slate-500">Capture the full story with its original source, photo and video.</p>
+        </div>
+        <button type="button" onclick="closeStoryModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <input type="hidden" name="storyId">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <label class="sm:col-span-2 block"><span class="field-label">Headline *</span>
+          <input name="title" required maxlength="300" class="field" placeholder="e.g. MOEST opens new STEM lab in Andros"></label>
+        <label class="block"><span class="field-label">Outlet / Account *</span>
+          <input name="outlet" required maxlength="200" class="field" placeholder="e.g. The Tribune 242"></label>
+        <label class="block"><span class="field-label">Handle</span>
+          <input name="handle" maxlength="100" class="field" placeholder="@Tribune242"></label>
+        <label class="block"><span class="field-label">Channel</span>
+          <select name="channel" class="field">
+            <option>News</option><option>Facebook</option><option>X</option><option>Instagram</option><option>YouTube</option><option>TikTok</option><option>Other</option>
+          </select></label>
+        <label class="block"><span class="field-label">Sentiment</span>
+          <select name="sentiment" class="field">
+            <option value="POSITIVE">Positive</option><option value="NEUTRAL" selected>Neutral</option><option value="NEGATIVE">Negative</option>
+          </select></label>
+        <label class="sm:col-span-2 block"><span class="field-label">Original source URL *</span>
+          <input name="sourceUrl" required type="url" class="field" placeholder="https://…"></label>
+        <label class="block"><span class="field-label">Photo URL</span>
+          <input name="imageUrl" type="url" class="field" placeholder="https://… .jpg"></label>
+        <label class="block"><span class="field-label">Photo caption</span>
+          <input name="imageCaption" maxlength="500" class="field" placeholder="Describe the photo"></label>
+        <label class="sm:col-span-2 block"><span class="field-label">Video URL <span class="normal-case font-normal text-slate-400">(YouTube, Vimeo, Facebook or .mp4)</span></span>
+          <input name="videoUrl" type="url" class="field" placeholder="https://www.youtube.com/watch?v=…"></label>
+        <label class="sm:col-span-2 block"><span class="field-label">Summary</span>
+          <textarea name="summary" rows="2" class="field" placeholder="One or two sentence overview"></textarea></label>
+        <label class="sm:col-span-2 block"><span class="field-label">Full write-up</span>
+          <textarea name="body" rows="7" class="field leading-relaxed" placeholder="Full story text. Separate paragraphs with a blank line."></textarea></label>
+        <label class="sm:col-span-2 block"><span class="field-label">Hashtags</span>
+          <input name="tags" maxlength="500" class="field" placeholder="#STEMBahamas #MOEST"></label>
+      </div>
+      <div class="flex justify-between items-center pt-2">
+        <button type="button" id="deleteStoryBtn" onclick="deleteStory()" class="hidden text-xs font-semibold text-rose-500 hover:text-rose-400"><i class="fa-solid fa-trash me-1"></i> Delete story</button>
+        <div class="flex space-x-2 ms-auto">
+          <button type="button" onclick="closeStoryModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-700 transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-bahama-aqua text-white rounded-lg text-xs font-bold hover:bg-bahama-aqualight transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-floppy-disk"></i> Save Story
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <style type="text/tailwindcss">
+    .field-label { @apply block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1; }
+    .field { @apply w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-bahama-aqua placeholder-slate-400; }
+  </style>
+
+  <script>
+    const { esc, api, toast, timeAgo, fmtDate, CHANNEL_ICONS, sentimentBadge, paragraphs, hostOf, videoEmbed } = MOEST;
+    let stories = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      ['storySearch', 'channelFilter', 'sentimentFilter'].forEach((id) =>
+        document.getElementById(id).addEventListener('input', render));
+      document.getElementById('storyForm').addEventListener('submit', saveStory);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeLightbox(); closeStoryModal(); } });
+      await load();
+      focusHash();
+    });
+    window.addEventListener('hashchange', focusHash);
+
+    async function load() {
+      try {
+        stories = await api('/api/stories');
+        render();
+      } catch (e) {
+        document.getElementById('storiesList').innerHTML =
+          `<div class="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-rose-500 text-xs">
+             <i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i>Could not load stories: ${esc(e.message)}</div>`;
+      }
+    }
+
+    function filtered() {
+      const q = document.getElementById('storySearch').value.trim().toLowerCase();
+      const ch = document.getElementById('channelFilter').value;
+      const se = document.getElementById('sentimentFilter').value;
+      return stories.filter((s) =>
+        (ch === 'ALL' || s.channel === ch) &&
+        (se === 'ALL' || s.sentiment === se) &&
+        (!q || [s.title, s.outlet, s.handle, s.summary, s.body, s.tags].join(' ').toLowerCase().includes(q)));
+    }
+
+    function render() {
+      const list = filtered();
+      document.getElementById('storyCount').textContent = `(${list.length})`;
+      document.getElementById('storyIndex').innerHTML = list.map((s) => `
+        <li><a href="#${esc(s.slug)}" class="flex gap-2 items-start px-2 py-2 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i class="${CHANNEL_ICONS[s.channel] || CHANNEL_ICONS.Other} text-slate-400 mt-0.5 w-3.5"></i>
+          <span><span class="font-semibold text-slate-700 dark:text-slate-200 line-clamp-2">${esc(s.title)}</span>
+          <span class="block text-[10px] text-slate-400 mt-0.5">${esc(s.outlet)} · ${esc(timeAgo(s.publishedAt))}</span></span>
+        </a></li>`).join('');
+
+      const container = document.getElementById('storiesList');
+      if (!list.length) {
+        container.innerHTML = `<div class="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
+          <i class="fa-solid fa-folder-open text-3xl mb-2"></i><p class="text-xs">No stories match your filters.</p></div>`;
+        return;
+      }
+      container.innerHTML = list.map(storyCard).join('');
+    }
+
+    function storyCard(s) {
+      const tags = (s.tags || '').split(/\s+/).filter(Boolean);
+      return `
+      <article id="${esc(s.slug)}" data-id="${s.id}" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        ${s.imageUrl ? `
+          <figure class="relative group cursor-zoom-in" onclick="openLightbox(${s.id})">
+            <img src="${esc(s.imageUrl)}" alt="${esc(s.imageCaption || s.title)}" loading="lazy" class="w-full h-64 sm:h-80 object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+            <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-expand me-1"></i> View full photo</span>
+            ${s.imageCaption ? `<figcaption class="absolute bottom-3 left-4 right-4 text-[11px] text-white/90">${esc(s.imageCaption)}</figcaption>` : ''}
+          </figure>` : ''}
+
+        <div class="p-5 sm:p-7 space-y-5">
+          <!-- Meta -->
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                <i class="${CHANNEL_ICONS[s.channel] || CHANNEL_ICONS.Other}"></i>
+              </div>
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-xs font-bold">${esc(s.outlet)}</span>
+                  ${s.handle ? `<span class="text-[11px] text-slate-400">${esc(s.handle)}</span>` : ''}
+                  <span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded">${esc(s.channel)}</span>
+                </div>
+                <time datetime="${esc(s.publishedAt)}" class="text-[10px] text-slate-400" title="${esc(fmtDate(s.publishedAt))}"><i class="fa-regular fa-clock me-1"></i>${esc(timeAgo(s.publishedAt))}</time>
+              </div>
+            </div>
+            ${sentimentBadge(s.sentiment)}
+          </div>
+
+          <!-- Headline & write-up -->
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold leading-tight">${esc(s.title)}</h2>
+            ${s.summary ? `<p class="mt-3 text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed border-l-4 border-bahama-gold pl-3">${esc(s.summary)}</p>` : ''}
+          </div>
+          ${s.body ? `<div class="story-body text-sm text-slate-700 dark:text-slate-300 leading-relaxed">${paragraphs(s.body)}</div>` : ''}
+
+          ${s.videoUrl ? `<div><p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2"><i class="fa-solid fa-film me-1 text-bahama-aqua"></i> Video</p>${videoEmbed(s.videoUrl)}</div>` : ''}
+
+          ${tags.length ? `<div class="flex flex-wrap gap-1.5">${tags.map((t) =>
+            `<button onclick="searchTag('${esc(t.replace(/['"\\]/g, ''))}')" class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-bahama-aqua/10 text-bahama-aqua border border-bahama-aqua/20 hover:bg-bahama-aqua/20 transition">${esc(t)}</button>`).join('')}</div>` : ''}
+
+          <!-- Source -->
+          <a href="${esc(s.sourceUrl)}" target="_blank" rel="noopener noreferrer"
+             class="flex items-center justify-between gap-3 p-3 rounded-xl bg-bahama-navy text-white hover:bg-slate-800 transition group">
+            <span class="flex items-center gap-3 min-w-0">
+              <span class="w-8 h-8 rounded-lg bg-bahama-gold text-slate-950 flex items-center justify-center shrink-0"><i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></span>
+              <span class="min-w-0"><span class="block text-xs font-bold">View original on ${esc(s.outlet)}</span>
+              <span class="block text-[11px] text-slate-400 truncate">${esc(hostOf(s.sourceUrl))}</span></span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:translate-x-1 transition"></i>
+          </a>
+
+          <!-- Related links -->
+          <section class="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-800/40">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3"><i class="fa-solid fa-link me-1 text-bahama-aqua"></i> Related links <span class="text-slate-400 font-normal normal-case">(${s.links.length})</span></h3>
+            ${s.links.length ? `<ul class="space-y-2 mb-3">${s.links.map((l) => `
+              <li class="flex items-start justify-between gap-3 bg-white dark:bg-slate-900 rounded-lg p-2.5 border border-slate-200 dark:border-slate-800">
+                <a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" class="min-w-0 text-xs group">
+                  <span class="font-semibold text-bahama-aqua group-hover:underline">${esc(l.title)}</span>
+                  <span class="block text-[10px] text-slate-400 truncate">${esc(hostOf(l.url))}${l.note ? ` — ${esc(l.note)}` : ''}${l.addedBy ? ` · added by ${esc(l.addedBy)}` : ''}</span>
+                </a>
+                <button onclick="removeLink(${l.id})" class="text-slate-400 hover:text-rose-500 text-xs shrink-0" aria-label="Remove link" title="Remove link"><i class="fa-solid fa-xmark"></i></button>
+              </li>`).join('')}</ul>` : `<p class="text-[11px] text-slate-400 mb-3">No related links yet — add coverage, statements or reference material below.</p>`}
+            <form onsubmit="addLink(event, ${s.id})" class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
+              <input name="url" type="url" required placeholder="https://related-link…" aria-label="Link URL" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
+              <input name="title" maxlength="300" placeholder="Link title (optional)" aria-label="Link title" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
+              <button class="px-3 py-2 bg-bahama-aqua text-white rounded-lg text-xs font-bold hover:bg-bahama-aqualight transition whitespace-nowrap"><i class="fa-solid fa-plus me-1"></i> Add link</button>
+            </form>
+          </section>
+
+          <!-- Actions -->
+          <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800 pt-4">
+            <a href="/ministry-data.html?new=Response&story=${s.id}" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-bahama-gold text-slate-950 hover:bg-yellow-400 transition"><i class="fa-solid fa-feather-pointed me-1"></i> Draft Ministry Response</a>
+            <button onclick="copyStoryLink('${esc(s.slug)}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"><i class="fa-solid fa-share-nodes me-1"></i> Copy link</button>
+            <button onclick="openStoryModal(${s.id})" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"><i class="fa-solid fa-pen me-1"></i> Edit story</button>
+          </div>
+        </div>
+      </article>`;
+    }
+
+    function focusHash() {
+      const slug = decodeURIComponent(location.hash.slice(1));
+      if (!slug) return;
+      const el = document.getElementById(slug);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.classList.remove('story-flash');
+      void el.offsetWidth;
+      el.classList.add('story-flash');
+    }
+
+    function searchTag(tag) {
+      document.getElementById('storySearch').value = tag;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function copyStoryLink(slug) {
+      const url = `${location.origin}/stories.html#${slug}`;
+      try { await navigator.clipboard.writeText(url); toast('Story link copied'); }
+      catch { prompt('Copy this link:', url); }
+    }
+
+    // ---------- Related links ----------
+    async function addLink(e, storyId) {
+      e.preventDefault();
+      const form = e.target;
+      const btn = form.querySelector('button');
+      btn.disabled = true;
+      try {
+        const link = await api(`/api/stories/${storyId}/links`, {
+          method: 'POST',
+          body: { url: form.url.value, title: form.title.value, addedBy: localStorage.getItem('moest-user') || '' },
+        });
+        stories.find((s) => s.id === storyId).links.push(link);
+        render();
+        toast('Link added');
+      } catch (err) { toast(err.message, 'error'); btn.disabled = false; }
+    }
+
+    async function removeLink(linkId) {
+      if (!confirm('Remove this related link?')) return;
+      try {
+        await api(`/api/links/${linkId}`, { method: 'DELETE' });
+        stories.forEach((s) => { s.links = s.links.filter((l) => l.id !== linkId); });
+        render();
+        toast('Link removed');
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    // ---------- Lightbox ----------
+    function openLightbox(id) {
+      const s = stories.find((x) => x.id === id);
+      if (!s?.imageUrl) return;
+      const img = document.getElementById('lightboxImg');
+      img.src = s.imageUrl;
+      img.alt = s.imageCaption || s.title;
+      document.getElementById('lightboxCaption').textContent = s.imageCaption || s.title;
+      const lb = document.getElementById('lightbox');
+      lb.classList.remove('hidden'); lb.classList.add('flex');
+    }
+    function closeLightbox() {
+      const lb = document.getElementById('lightbox');
+      lb.classList.add('hidden'); lb.classList.remove('flex');
+    }
+
+    // ---------- Add / edit story ----------
+    function openStoryModal(id) {
+      const form = document.getElementById('storyForm');
+      form.reset();
+      const s = id ? stories.find((x) => x.id === id) : null;
+      form.storyId.value = s ? s.id : '';
+      ['title', 'outlet', 'handle', 'channel', 'sentiment', 'sourceUrl', 'imageUrl', 'imageCaption', 'videoUrl', 'summary', 'body', 'tags']
+        .forEach((f) => { if (s) form[f].value = s[f] ?? ''; });
+      document.querySelector('#storyModalTitle span').textContent = s ? 'Edit Story' : 'Log New Story';
+      document.getElementById('deleteStoryBtn').classList.toggle('hidden', !s);
+      const m = document.getElementById('storyModal');
+      m.classList.remove('hidden'); m.classList.add('flex');
+      form.title.focus();
+    }
+    function closeStoryModal() {
+      const m = document.getElementById('storyModal');
+      m.classList.add('hidden'); m.classList.remove('flex');
+    }
+
+    async function saveStory(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form));
+      const id = data.storyId;
+      delete data.storyId;
+      try {
+        const saved = await api(id ? `/api/stories/${id}` : '/api/stories', { method: id ? 'PUT' : 'POST', body: data });
+        if (id) {
+          const i = stories.findIndex((s) => s.id === Number(id));
+          stories[i] = { ...stories[i], ...saved };
+        } else {
+          stories.unshift(saved);
+        }
+        closeStoryModal();
+        render();
+        toast(id ? 'Story updated' : 'Story logged');
+        location.hash = saved.slug;
+        focusHash();
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    async function deleteStory() {
+      const id = Number(document.getElementById('storyForm').storyId.value);
+      if (!id || !confirm('Delete this story and its related links? This cannot be undone.')) return;
+      try {
+        await api(`/api/stories/${id}`, { method: 'DELETE' });
+        stories = stories.filter((s) => s.id !== id);
+        closeStoryModal();
+        render();
+        toast('Story deleted');
+      } catch (err) { toast(err.message, 'error'); }
+    }
+  </script>
+</body>
+</html>

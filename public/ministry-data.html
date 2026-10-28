@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ministry Data - MOEST Bahamas Media Command Center</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bahama: { aqua: '#00778B', aqualight: '#00A3C4', gold: '#FCD116', navy: '#0B192C', darkcard: '#1E293B' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="/assets/common.js"></script>
+
+  <style>
+    .doc-body p { margin-bottom: 12px; }
+    .doc-body p:last-child { margin-bottom: 0; }
+  </style>
+  <style type="text/tailwindcss">
+    .field-label { @apply block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1; }
+    .field { @apply w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-bahama-aqua placeholder-slate-400; }
+    .seg { @apply px-3 py-1.5 text-xs font-bold transition; }
+    .seg[aria-pressed="true"] { @apply bg-bahama-aqua text-white; }
+    .seg[aria-pressed="false"] { @apply bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700; }
+    .chip { @apply px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap; }
+    .chip[aria-pressed="true"] { @apply bg-bahama-aqua text-white shadow-sm; }
+    .chip[aria-pressed="false"] { @apply bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700; }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 min-h-screen flex flex-col font-sans">
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-30 shadow-md">
+    <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+        <a href="/" class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-lg bg-bahama-aqua flex items-center justify-center text-white shadow-lg shadow-bahama-aqua/30">
+            <i class="fa-solid fa-landmark text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-bold leading-none text-slate-900 dark:text-white">MOEST Bahamas</h1>
+              <span class="bg-bahama-aqua/10 text-bahama-aqua dark:bg-bahama-aqua/20 text-[11px] font-semibold px-2 py-0.5 rounded border border-bahama-aqua/30">Official Intelligence</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">In-House Ministry Data</p>
+          </div>
+        </a>
+        <div class="flex items-center space-x-3">
+          <button onclick="exportAll()" id="exportAllBtn" class="hidden md:flex items-center space-x-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
+            <i class="fa-solid fa-file-pdf"></i><span>Export Visible as PDF</span>
+          </button>
+          <button onclick="newRecord()" class="flex items-center space-x-2 bg-bahama-gold text-slate-950 hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+            <i class="fa-solid fa-plus"></i><span class="hidden sm:inline">New Record</span>
+          </button>
+          <button onclick="toggleTheme()" aria-label="Toggle theme" class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+            <i class="fa-solid fa-moon dark:hidden"></i>
+            <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <nav id="appTabs" data-active="ministry"></nav>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- Kind summary tiles -->
+    <section id="kindTiles" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"></section>
+
+    <!-- Filters -->
+    <section class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+      <div class="relative w-full md:w-80">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+        <input id="recordSearch" type="search" placeholder="Search responses, write-ups, data…" aria-label="Search records"
+          class="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs focus:ring-2 focus:ring-bahama-aqua placeholder-slate-400">
+      </div>
+      <div id="kindChips" class="flex items-center gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0"></div>
+      <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+        <label for="statusFilter" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Status:</label>
+        <select id="statusFilter" class="bg-slate-100 dark:bg-slate-800 text-xs border-none rounded-lg px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
+          <option value="ALL">All</option><option>Draft</option><option>In Review</option><option>Approved</option><option>Published</option>
+        </select>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 items-start">
+      <!-- Records list -->
+      <aside class="space-y-2 lg:sticky lg:top-36 lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-1" id="recordList">
+        <div class="text-center py-16 text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Loading Ministry data…</div>
+      </aside>
+
+      <!-- Editor + preview -->
+      <section id="editorPane" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hidden min-w-0">
+        <form id="recordForm" class="p-5 border-b border-slate-200 dark:border-slate-800 space-y-3" autocomplete="off">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-base font-bold flex items-center gap-2">
+              <i class="fa-solid fa-pen-to-square text-bahama-aqua"></i>
+              <span id="editorTitle">Edit Record</span>
+              <span id="dirtyBadge" class="hidden text-[10px] font-semibold bg-amber-500/15 text-amber-500 px-2 py-0.5 rounded">Unsaved changes</span>
+            </h2>
+            <span id="editorMeta" class="text-[11px] text-slate-400"></span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+            <label class="block"><span class="field-label">Type</span>
+              <select name="kind" class="field"></select></label>
+            <label class="block"><span class="field-label">Status</span>
+              <select name="status" class="field"><option>Draft</option><option>In Review</option><option>Approved</option><option>Published</option></select></label>
+            <label class="block"><span class="field-label">Author</span>
+              <input name="author" maxlength="120" class="field" placeholder="Name or unit"></label>
+            <label class="block"><span class="field-label">Department</span>
+              <input name="department" maxlength="120" class="field" placeholder="Communications"></label>
+            <label class="sm:col-span-4 block"><span class="field-label">Title *</span>
+              <input name="title" required maxlength="300" class="field text-sm font-semibold" placeholder="Record title"></label>
+            <label class="sm:col-span-4 block"><span class="field-label">Related story</span>
+              <select name="storyId" class="field"><option value="">— None —</option></select></label>
+            <label class="sm:col-span-4 block"><span class="field-label">Content</span>
+              <textarea name="body" rows="10" class="field leading-relaxed font-sans" placeholder="Write the response, write-up or data here. Separate paragraphs with a blank line."></textarea></label>
+          </div>
+          <div class="flex flex-wrap justify-between items-center gap-2 pt-1">
+            <div class="flex gap-3">
+              <button type="button" id="deleteBtn" onclick="deleteRecord()" class="text-xs font-semibold text-rose-500 hover:text-rose-400"><i class="fa-solid fa-trash me-1"></i> Delete</button>
+              <button type="button" id="duplicateBtn" onclick="duplicateRecord()" class="text-xs font-semibold text-slate-500 hover:text-slate-300"><i class="fa-regular fa-copy me-1"></i> Duplicate</button>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" onclick="revertRecord()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-700 transition">Discard changes</button>
+              <button type="submit" id="saveBtn" class="px-4 py-2 bg-bahama-aqua text-white rounded-lg text-xs font-bold hover:bg-bahama-aqualight transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-floppy-disk"></i> Save
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Export / share bar -->
+        <div class="px-5 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-3 justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Format</span>
+            <div class="inline-flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700" role="group" aria-label="Export format">
+              <button type="button" class="seg" data-fmt="pdf" aria-pressed="true"><i class="fa-solid fa-file-pdf me-1"></i>PDF</button>
+              <button type="button" class="seg" data-fmt="png" aria-pressed="false"><i class="fa-solid fa-file-image me-1"></i>PNG</button>
+              <button type="button" class="seg" data-fmt="svg" aria-pressed="false"><i class="fa-solid fa-bezier-curve me-1"></i>SVG</button>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="exportCurrent('download')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-bahama-gold text-slate-950 hover:bg-yellow-400 transition"><i class="fa-solid fa-download me-1"></i> Download</button>
+            <button type="button" onclick="exportCurrent('share')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-bahama-aqua text-white hover:bg-bahama-aqualight transition"><i class="fa-solid fa-share-nodes me-1"></i> Share file</button>
+            <button type="button" onclick="copyText()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition"><i class="fa-regular fa-clipboard me-1"></i> Copy text</button>
+            <button type="button" onclick="emailRecord()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition"><i class="fa-regular fa-envelope me-1"></i> Email</button>
+          </div>
+        </div>
+
+        <!-- Live document preview -->
+        <div class="p-5">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2"><i class="fa-solid fa-eye me-1 text-bahama-aqua"></i> Document preview <span class="normal-case font-normal text-slate-400">— exactly what gets exported</span></p>
+          <div class="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner bg-slate-200 dark:bg-slate-800 p-3 sm:p-6">
+            <div id="docPreview" class="mx-auto max-w-[794px] shadow-xl"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="emptyPane" class="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-12 text-center text-slate-400 hidden">
+        <i class="fa-solid fa-folder-open text-4xl mb-3"></i>
+        <p class="text-sm font-semibold">Select a record to view and edit it</p>
+        <p class="text-xs mt-1">Or create a new response, write-up or data brief.</p>
+        <button onclick="newRecord()" class="mt-4 px-4 py-2 bg-bahama-gold text-slate-950 rounded-lg text-xs font-bold hover:bg-yellow-400 transition"><i class="fa-solid fa-plus me-1"></i> New Record</button>
+      </section>
+    </div>
+  </main>
+
+  <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-8 text-xs text-center text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <p>© 2026 Ministry of Education, Science and Technology (MOEST), Commonwealth of The Bahamas.</p>
+      <span>Communications Section Intelligence Unit</span>
+    </div>
+  </footer>
+
+  <!-- Off-screen stage used to render fixed-width A4 documents for export -->
+  <div aria-hidden="true" style="position:fixed; left:-10000px; top:0; pointer-events:none;">
+    <div id="exportStage" style="width:794px;"></div>
+  </div>
+
+  <!-- Busy overlay -->
+  <div id="busy" class="fixed inset-0 z-[65] bg-black/40 backdrop-blur-sm hidden items-center justify-center">
+    <div class="bg-white dark:bg-slate-900 rounded-xl px-6 py-4 shadow-2xl text-xs font-semibold flex items-center gap-3">
+      <i class="fa-solid fa-spinner fa-spin text-bahama-aqua text-lg"></i><span id="busyText">Preparing file…</span>
+    </div>
+  </div>
+
+  <script>
+    const { esc, api, toast, timeAgo, fmtDate, paragraphs, nodeToBlob, appendNodeToPdf, downloadBlob, shareBlob, fileSlug } = MOEST;
+
+    const KINDS = [
+      { name: 'Response', icon: 'fa-reply', color: 'text-bahama-aqua bg-bahama-aqua/10' },
+      { name: 'Write-up', icon: 'fa-file-lines', color: 'text-blue-500 bg-blue-500/10' },
+      { name: 'Press Release', icon: 'fa-bullhorn', color: 'text-amber-500 bg-amber-500/10' },
+      { name: 'Statement', icon: 'fa-feather-pointed', color: 'text-purple-500 bg-purple-500/10' },
+      { name: 'Data Brief', icon: 'fa-chart-column', color: 'text-emerald-500 bg-emerald-500/10' },
+      { name: 'Note', icon: 'fa-note-sticky', color: 'text-slate-400 bg-slate-500/10' },
+    ];
+    const STATUS_STYLES = {
+      Draft: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+      'In Review': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+      Approved: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+      Published: 'bg-bahama-aqua/10 text-bahama-aqua border-bahama-aqua/30',
+    };
+    const kindInfo = (k) => KINDS.find((x) => x.name === k) || KINDS[1];
+
+    let records = [];
+    let stories = [];
+    let kindFilter = 'ALL';
+    let current = null; // the saved record being edited, or a draft object with no id
+    let format = 'pdf';
+    let dirty = false;
+
+    const form = () => document.getElementById('recordForm');
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      form().kind.innerHTML = KINDS.map((k) => `<option>${k.name}</option>`).join('');
+      document.getElementById('kindChips').innerHTML = ['ALL', ...KINDS.map((k) => k.name)].map((k) =>
+        `<button type="button" class="chip" data-kind="${esc(k)}" aria-pressed="${k === 'ALL'}">${k === 'ALL' ? 'All Types' : esc(k)}</button>`).join('');
+      document.getElementById('kindChips').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-kind]');
+        if (b) setKindFilter(b.dataset.kind);
+      });
+      document.getElementById('recordSearch').addEventListener('input', renderList);
+      document.getElementById('statusFilter').addEventListener('input', renderList);
+      document.querySelectorAll('[data-fmt]').forEach((b) => b.addEventListener('click', () => {
+        format = b.dataset.fmt;
+        document.querySelectorAll('[data-fmt]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      }));
+      form().addEventListener('input', () => { setDirty(true); renderPreview(); });
+      form().addEventListener('submit', saveRecord);
+      window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+      try {
+        [records, stories] = await Promise.all([api('/api/records'), api('/api/stories')]);
+      } catch (e) {
+        document.getElementById('recordList').innerHTML = `<div class="text-center py-10 text-rose-500 text-xs">Could not load data: ${esc(e.message)}</div>`;
+        return;
+      }
+      form().storyId.innerHTML = '<option value="">— None —</option>' +
+        stories.map((s) => `<option value="${s.id}">${esc(s.title)} (${esc(s.outlet)})</option>`).join('');
+
+      renderTiles();
+      renderList();
+
+      const params = new URLSearchParams(location.search);
+      if (params.get('new')) {
+        newRecord(params.get('new'), Number(params.get('story')) || null);
+      } else if (params.get('record') && records.some((r) => r.id === Number(params.get('record')))) {
+        selectRecord(Number(params.get('record')));
+      } else if (records.length) {
+        selectRecord(records[0].id);
+      } else {
+        showEditor(false);
+      }
+    });
+
+    // ---------- List & tiles ----------
+    function setKindFilter(k) {
+      kindFilter = k;
+      document.querySelectorAll('[data-kind]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.kind === k)));
+      renderList();
+    }
+
+    function renderTiles() {
+      document.getElementById('kindTiles').innerHTML = KINDS.map((k) => {
+        const n = records.filter((r) => r.kind === k.name).length;
+        return `<button type="button" onclick="setKindFilter('${k.name}')" class="text-left bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-bahama-aqua/50 transition">
+          <div class="flex justify-between items-start">
+            <div><p class="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">${k.name}s</p>
+            <p class="text-xl font-bold mt-0.5">${n}</p></div>
+            <span class="p-2 rounded-lg ${k.color}"><i class="fa-solid ${k.icon}"></i></span>
+          </div></button>`;
+      }).join('');
+    }
+
+    function visibleRecords() {
+      const q = document.getElementById('recordSearch').value.trim().toLowerCase();
+      const st = document.getElementById('statusFilter').value;
+      return records.filter((r) =>
+        (kindFilter === 'ALL' || r.kind === kindFilter) &&
+        (st === 'ALL' || r.status === st) &&
+        (!q || [r.title, r.body, r.author, r.department, r.kind].join(' ').toLowerCase().includes(q)));
+    }
+
+    function renderList() {
+      const list = visibleRecords();
+      const el = document.getElementById('recordList');
+      if (!list.length) {
+        el.innerHTML = `<div class="text-center py-10 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
+          <i class="fa-solid fa-folder-open text-2xl mb-2"></i><p class="text-xs">No records match your filters.</p></div>`;
+        return;
+      }
+      el.innerHTML = list.map((r) => {
+        const k = kindInfo(r.kind);
+        const active = current && current.id === r.id;
+        return `<button type="button" onclick="selectRecord(${r.id})" ${active ? 'aria-current="true"' : ''}
+          class="w-full text-left bg-white dark:bg-slate-900 p-3.5 rounded-xl border shadow-sm transition ${active ? 'border-bahama-aqua ring-1 ring-bahama-aqua' : 'border-slate-200 dark:border-slate-800 hover:border-bahama-aqua/50'}">
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded ${k.color}"><i class="fa-solid ${k.icon} me-1"></i>${esc(r.kind)}</span>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded border ${STATUS_STYLES[r.status] || STATUS_STYLES.Draft}">${esc(r.status)}</span>
+          </div>
+          <h3 class="text-xs font-bold leading-snug line-clamp-2">${esc(r.title)}</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${esc(r.body.slice(0, 180))}</p>
+          <p class="text-[10px] text-slate-400 mt-1.5"><i class="fa-regular fa-clock me-1"></i>Updated ${esc(timeAgo(r.updatedAt))}${r.author ? ` · ${esc(r.author)}` : ''}</p>
+        </button>`;
+      }).join('');
+    }
+
+    // ---------- Editor ----------
+    function showEditor(show) {
+      document.getElementById('editorPane').classList.toggle('hidden', !show);
+      document.getElementById('emptyPane').classList.toggle('hidden', show);
+    }
+
+    function setDirty(v) {
+      dirty = v;
+      document.getElementById('dirtyBadge').classList.toggle('hidden', !v);
+    }
+
+    function confirmDiscard() {
+      return !dirty || confirm('You have unsaved changes. Discard them?');
+    }
+
+    function fillForm(r) {
+      const f = form();
+      f.kind.value = r.kind;
+      f.status.value = r.status;
+      f.author.value = r.author || '';
+      f.department.value = r.department || '';
+      f.title.value = r.title || '';
+      f.storyId.value = r.storyId || '';
+      f.body.value = r.body || '';
+      document.getElementById('editorTitle').textContent = r.id ? 'Edit Record' : 'New Record';
+      document.getElementById('editorMeta').textContent = r.id ? `Created ${fmtDate(r.createdAt)} · #${r.id}` : 'Not saved yet';
+      document.getElementById('deleteBtn').classList.toggle('hidden', !r.id);
+      document.getElementById('duplicateBtn').classList.toggle('hidden', !r.id);
+      setDirty(!r.id);
+      renderPreview();
+    }
+
+    function selectRecord(id) {
+      if (current?.id === id || !confirmDiscard()) return;
+      current = records.find((r) => r.id === id);
+      if (!current) return;
+      history.replaceState(null, '', `?record=${id}`);
+      showEditor(true);
+      fillForm(current);
+      renderList();
+      if (window.innerWidth < 1024) document.getElementById('editorPane').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function newRecord(kind = 'Write-up', storyId = null) {
+      if (!confirmDiscard()) return;
+      const story = stories.find((s) => s.id === storyId);
+      const k = KINDS.some((x) => x.name === kind) ? kind : 'Write-up';
+      current = {
+        kind: k,
+        status: 'Draft',
+        author: localStorage.getItem('moest-user') || '',
+        department: 'Communications',
+        storyId: story ? story.id : null,
+        title: story ? `${k}: ${story.title}` : '',
+        body: story
+          ? `OFFICIAL MEDIA STATEMENT (MOEST BAHAMAS)\n\nThe Ministry of Education, Science and Technology acknowledges recent coverage by ${story.outlet} regarding "${story.title}".\n\n[Write the Ministry's response here.]\n\nOfficial updates are continually published via the Ministry's Communications Section.`
+          : '',
+        updatedAt: new Date().toISOString(),
+      };
+      history.replaceState(null, '', location.pathname);
+      showEditor(true);
+      fillForm(current);
+      renderList();
+      form().title.focus();
+    }
+
+    function readForm() {
+      const f = form();
+      return {
+        kind: f.kind.value,
+        status: f.status.value,
+        author: f.author.value,
+        department: f.department.value,
+        title: f.title.value,
+        storyId: f.storyId.value ? Number(f.storyId.value) : null,
+        body: f.body.value,
+      };
+    }
+
+    async function saveRecord(e) {
+      e?.preventDefault();
+      const data = readForm();
+      if (!data.title.trim()) { toast('Please add a title', 'error'); form().title.focus(); return; }
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      try {
+        if (data.author) localStorage.setItem('moest-user', data.author);
+        const saved = await api(current?.id ? `/api/records/${current.id}` : '/api/records', {
+          method: current?.id ? 'PUT' : 'POST',
+          body: data,
+        });
+        const i = records.findIndex((r) => r.id === saved.id);
+        if (i >= 0) records.splice(i, 1);
+        records.unshift(saved);
+        current = saved;
+        history.replaceState(null, '', `?record=${saved.id}`);
+        fillForm(saved);
+        setDirty(false);
+        renderTiles();
+        renderList();
+        toast('Record saved');
+      } catch (err) {
+        toast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function revertRecord() {
+      if (!current) return;
+      if (!current.id) { setDirty(false); current = null; records.length ? selectRecord(records[0].id) : showEditor(false); return; }
+      fillForm(current);
+      setDirty(false);
+    }
+
+    function duplicateRecord() {
+      if (!current?.id || !confirmDiscard()) return;
+      const copy = { ...readForm(), title: `${form().title.value} (copy)`, status: 'Draft' };
+      setDirty(false);
+      current = { ...copy, updatedAt: new Date().toISOString() };
+      fillForm(current);
+      renderList();
+    }
+
+    async function deleteRecord() {
+      if (!current?.id || !confirm(`Delete "${current.title}"? This cannot be undone.`)) return;
+      try {
+        await api(`/api/records/${current.id}`, { method: 'DELETE' });
+        records = records.filter((r) => r.id !== current.id);
+        current = null;
+        setDirty(false);
+        renderTiles();
+        renderList();
+        if (records.length) selectRecord(records[0].id); else { history.replaceState(null, '', location.pathname); showEditor(false); }
+        toast('Record deleted');
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    // ---------- Document template (preview + export) ----------
+    function docHTML(r) {
+      const story = stories.find((s) => s.id === r.storyId);
+      const updated = r.updatedAt ? fmtDate(r.updatedAt) : fmtDate(new Date());
+      const row = (label, value) => value ? `<tr><td style="padding:4px 12px 4px 0;color:#64748b;font-weight:600;white-space:nowrap;vertical-align:top">${label}</td><td style="padding:4px 0;color:#0f172a">${value}</td></tr>` : '';
+      return `
+      <div style="background:#ffffff;color:#0f172a;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <div style="background:#0B192C;padding:22px 36px;display:flex;align-items:center;gap:16px;">
+          <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="44" height="44" rx="10" fill="#00778B"/>
+            <path d="M22 9 L35 16 H9 Z" fill="#FCD116"/>
+            <rect x="11" y="18" width="3.5" height="13" fill="#fff"/><rect x="17.5" y="18" width="3.5" height="13" fill="#fff"/>
+            <rect x="24" y="18" width="3.5" height="13" fill="#fff"/><rect x="30" y="18" width="3.5" height="13" fill="#fff"/>
+            <rect x="9" y="32" width="26" height="3" fill="#FCD116"/>
+          </svg>
+          <div>
+            <div style="color:#FCD116;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Commonwealth of The Bahamas</div>
+            <div style="color:#ffffff;font-size:15px;font-weight:700;margin-top:2px;">Ministry of Education, Science and Technology</div>
+            <div style="color:#94a3b8;font-size:11px;margin-top:2px;">${esc(r.department || 'Communications')}</div>
+          </div>
+          <div style="margin-left:auto;text-align:right;">
+            <div style="display:inline-block;background:#FCD116;color:#0B192C;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:4px 10px;border-radius:4px;">${esc(r.kind)}</div>
+            <div style="color:#94a3b8;font-size:10px;margin-top:6px;">${esc(r.status)}</div>
+          </div>
+        </div>
+        <div style="height:4px;background:linear-gradient(90deg,#00778B 0%,#00778B 33%,#FCD116 33%,#FCD116 66%,#0f172a 66%);"></div>
+        <div style="padding:32px 36px 28px;">
+          <h1 style="font-size:22px;line-height:1.25;font-weight:800;margin:0 0 16px;color:#0f172a;">${esc(r.title || 'Untitled record')}</h1>
+          <table style="font-size:11px;border-collapse:collapse;margin-bottom:20px;">
+            ${row('Author', esc(r.author))}
+            ${row('Last updated', esc(updated))}
+            ${row('Related story', story ? `${esc(story.title)} — ${esc(story.outlet)}<br><span style="color:#00778B">${esc(story.sourceUrl)}</span>` : '')}
+            ${row('Reference', r.id ? `MOEST-${String(r.id).padStart(5, '0')}` : 'Unsaved draft')}
+          </table>
+          <div style="border-top:1px solid #e2e8f0;padding-top:20px;font-size:13px;line-height:1.7;color:#1e293b;" class="doc-body">
+            ${r.body ? paragraphs(r.body) : '<p style="color:#94a3b8;font-style:italic">No content yet.</p>'}
+          </div>
+        </div>
+        <div style="padding:14px 36px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8;">
+          <span>MOEST Bahamas · Communications Section Intelligence Unit</span>
+          <span>Generated ${esc(fmtDate(new Date()))}</span>
+        </div>
+      </div>`;
+    }
+
+    function renderPreview() {
+      if (!current) return;
+      document.getElementById('docPreview').innerHTML = docHTML({ ...current, ...readForm() });
+    }
+
+    // ---------- Export & share ----------
+    function busy(on, text = 'Preparing file…') {
+      const el = document.getElementById('busy');
+      document.getElementById('busyText').textContent = text;
+      el.classList.toggle('hidden', !on);
+      el.classList.toggle('flex', on);
+    }
+
+    async function renderToStage(record) {
+      const stage = document.getElementById('exportStage');
+      stage.innerHTML = docHTML(record);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return stage.firstElementChild;
+    }
+
+    async function exportCurrent(mode) {
+      if (!current) return;
+      const record = { ...current, ...readForm() };
+      const filename = `moest-${fileSlug(record.kind)}-${fileSlug(record.title)}.${format}`;
+      busy(true, `Creating ${format.toUpperCase()}…`);
+      try {
+        const node = await renderToStage(record);
+        const blob = await nodeToBlob(node, format);
+        if (mode === 'share') {
+          const result = await shareBlob(blob, filename, record.title);
+          if (result === 'downloaded') toast('Sharing files isn’t supported on this device — file downloaded instead');
+          else if (result === 'shared') toast('Shared');
+        } else {
+          downloadBlob(blob, filename);
+          toast(`${format.toUpperCase()} downloaded`);
+        }
+      } catch (err) {
+        console.error(err);
+        toast(`Export failed: ${err.message || err}`, 'error');
+      } finally {
+        busy(false);
+        document.getElementById('exportStage').innerHTML = '';
+      }
+    }
+
+    async function exportAll() {
+      const list = visibleRecords();
+      if (!list.length) { toast('No records to export', 'error'); return; }
+      busy(true, `Creating PDF of ${list.length} record${list.length > 1 ? 's' : ''}…`);
+      try {
+        const pdf = new jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+        for (let i = 0; i < list.length; i++) {
+          const rec = current?.id === list[i].id ? { ...current, ...readForm() } : list[i];
+          const node = await renderToStage(rec);
+          if (i > 0) pdf.addPage();
+          await appendNodeToPdf(pdf, node, true);
+        }
+        const label = kindFilter === 'ALL' ? 'records' : fileSlug(kindFilter);
+        downloadBlob(pdf.output('blob'), `moest-${label}-${new Date().toISOString().slice(0, 10)}.pdf`);
+        toast('PDF downloaded');
+      } catch (err) {
+        console.error(err);
+        toast(`Export failed: ${err.message || err}`, 'error');
+      } finally {
+        busy(false);
+        document.getElementById('exportStage').innerHTML = '';
+      }
+    }
+
+    function plainText() {
+      const r = readForm();
+      return `${r.kind.toUpperCase()} — ${r.status}\n${r.title}\n${r.author ? `By ${r.author}\n` : ''}\n${r.body}\n\n— Ministry of Education, Science and Technology, The Bahamas`;
+    }
+
+    async function copyText() {
+      try { await navigator.clipboard.writeText(plainText()); toast('Text copied to clipboard'); }
+      catch { toast('Clipboard unavailable', 'error'); }
+    }
+
+    function emailRecord() {
+      const r = readForm();
+      location.href = `mailto:?subject=${encodeURIComponent(`MOEST ${r.kind}: ${r.title}`)}&body=${encodeURIComponent(plainText())}`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOEST Bahamas - Media & News Intelligence Command Center</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bahama: {
+              aqua: '#00778B',
+              aqualight: '#00A3C4',
+              gold: '#FCD116',
+              navy: '#0B192C',
+              darkcard: '#1E293B'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Shared helpers (tabs, theme, API) -->
+  <script src="/assets/common.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .animate-pulse-slow {
+      animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    .ticker-wrap {
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .ticker-move {
+      display: inline-block;
+      animation: ticker 35s linear infinite;
+    }
+    .ticker-move:hover {
+      animation-play-state: paused;
+    }
+    @keyframes ticker {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-50%, 0, 0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 min-h-screen flex flex-col font-sans">
+
+  <!-- TOP NEWS TICKER -->
+  <div class="bg-bahama-navy text-slate-200 text-xs border-b border-slate-800 py-1.5 px-4 flex items-center shadow-inner">
+    <span class="bg-bahama-gold text-slate-950 px-2 py-0.5 rounded font-bold uppercase tracking-wider text-[10px] mr-3 flex items-center gap-1 shrink-0">
+      <i class="fa-solid fa-bolt animate-pulse me-1"></i> Live Media Feed
+    </span>
+    <div class="ticker-wrap flex-1">
+      <div class="ticker-move text-xs flex gap-8" id="tickerContent">
+        <a href="/stories.html#breakfast-program-expansion" class="hover:text-bahama-gold transition"><b>ZNS News:</b> MOEST announces expansion of National Breakfast Program to 8 additional Family Island primary schools.</a>
+        <a href="/stories.html#but-consultative-meeting" class="hover:text-bahama-gold transition"><b>The Tribune:</b> Bahamas Union of Teachers holds quarterly consultative meeting regarding teacher placement.</a>
+        <a href="/stories.html#bgcse-bjc-stem-registration" class="hover:text-bahama-gold transition"><b>Nassau Guardian:</b> BGCSE & BJC 2026 Examination registration records 5% increase in STEM subject enrollment.</a>
+        <a href="/stories.html#gov-high-ac-repairs" class="hover:text-bahama-gold transition"><b>Bahamas Press:</b> AC upgrades underway across New Providence secondary institutions ahead of summer terms.</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER / NAVBAR -->
+  <header class="sticky top-0 z-30 shadow-md">
+    <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-bahama-aqua flex items-center justify-center text-white shadow-lg shadow-bahama-aqua/30">
+          <i class="fa-solid fa-landmark text-xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold leading-none text-slate-900 dark:text-white">MOEST Bahamas</h1>
+            <span class="bg-bahama-aqua/10 text-bahama-aqua dark:bg-bahama-aqua/20 text-[11px] font-semibold px-2 py-0.5 rounded border border-bahama-aqua/30">Official Intelligence</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Media Monitoring & Public Sentiment Command Center</p>
+        </div>
+      </div>
+
+      <!-- Controls & Actions -->
+      <div class="flex items-center space-x-3">
+        <button onclick="simulateNewPost()" class="hidden sm:flex items-center space-x-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
+          <i class="fa-solid fa-arrows-rotate animate-spin-hover"></i>
+          <span>Simulate Mention</span>
+        </button>
+        
+        <button onclick="exportBriefing()" class="hidden md:flex items-center space-x-2 bg-bahama-gold text-slate-950 hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+          <i class="fa-solid fa-file-pdf"></i>
+          <span>Export Briefs (PDF / PNG / SVG)</span>
+        </button>
+
+        <button id="themeToggle" onclick="toggleTheme()" class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+          <i class="fa-solid fa-moon dark:hidden"></i>
+          <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
+        </button>
+      </div>
+    </div>
+    </div>
+    <nav id="appTabs" data-active="dashboard"></nav>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-6">
+
+    <!-- OVERVIEW METRICS GRID -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Total Volume -->
+      <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Mentions (24h)</p>
+            <h3 class="text-2xl font-bold mt-1" id="statVolume">1,482</h3>
+          </div>
+          <div class="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
+            <i class="fa-solid fa-bullhorn text-lg"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-emerald-500 font-semibold">
+          <i class="fa-solid fa-arrow-trend-up me-1"></i> +18.4% <span class="text-slate-400 font-normal me-1 ms-1">vs yesterday</span>
+        </div>
+      </div>
+
+      <!-- Net Sentiment Index -->
+      <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Net Sentiment Score</p>
+            <h3 class="text-2xl font-bold text-emerald-500 mt-1" id="statSentimentScore">+54%</h3>
+          </div>
+          <div class="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+            <i class="fa-solid fa-face-smile text-lg"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <span class="text-emerald-500 font-bold me-1">68% Pos</span> • <span class="text-slate-400 me-1">18% Neu</span> • <span class="text-rose-500 font-bold me-1">14% Neg</span>
+        </div>
+      </div>
+
+      <!-- High Priority Alerts -->
+      <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Action Items / Alerts</p>
+            <h3 class="text-2xl font-bold text-rose-500 mt-1" id="statAlerts">3 Priority</h3>
+          </div>
+          <div class="p-2 bg-rose-500/10 text-rose-500 rounded-lg">
+            <i class="fa-solid fa-triangle-exclamation text-lg animate-pulse"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-rose-500 font-semibold">
+          <i class="fa-solid fa-clock me-1"></i> Requires Comms Response
+        </div>
+      </div>
+
+      <!-- Estimated Public Reach -->
+      <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Estimated Audience Reach</p>
+            <h3 class="text-2xl font-bold mt-1" id="statReach">245.8K</h3>
+          </div>
+          <div class="p-2 bg-bahama-aqua/10 text-bahama-aqua rounded-lg">
+            <i class="fa-solid fa-users text-lg"></i>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400">
+          <i class="fa-solid fa-globe me-1 text-bahama-aqua"></i> Across Bahamian Outlets & Social
+        </div>
+      </div>
+
+    </section>
+
+    <!-- QUICK ACCESS: STORIES & MINISTRY DATA -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <a href="/stories.html" class="group bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-bahama-aqua/60 transition flex items-start gap-4">
+        <div class="w-11 h-11 rounded-lg bg-bahama-aqua/10 text-bahama-aqua flex items-center justify-center shrink-0"><i class="fa-solid fa-newspaper text-lg"></i></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold">Stories & Media Library</h2>
+            <i class="fa-solid fa-arrow-right text-xs text-slate-400 group-hover:text-bahama-aqua group-hover:translate-x-1 transition"></i>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Read every monitored news & social story in full — photos, embedded video, original sources and team-added related links.</p>
+          <p class="text-[11px] text-bahama-aqua font-semibold mt-2" id="storiesQuickStat"><i class="fa-solid fa-circle-notch fa-spin me-1"></i> Loading…</p>
+        </div>
+      </a>
+      <a href="/ministry-data.html" class="group bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-bahama-gold/70 transition flex items-start gap-4">
+        <div class="w-11 h-11 rounded-lg bg-bahama-gold/15 text-amber-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-folder-tree text-lg"></i></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold">Ministry Data</h2>
+            <i class="fa-solid fa-arrow-right text-xs text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition"></i>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">All official responses, write-ups, press releases and data briefs — edit them and share as PDF, PNG or SVG.</p>
+          <p class="text-[11px] text-amber-500 font-semibold mt-2" id="recordsQuickStat"><i class="fa-solid fa-circle-notch fa-spin me-1"></i> Loading…</p>
+        </div>
+      </a>
+    </section>
+
+    <!-- CHARTS SECTION -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Chart 1: 7-Day Sentiment Velocity -->
+      <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-base font-bold">Media Volume & Sentiment Velocity (7-Day)</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Daily breakdown of media coverage and citizen reactions</p>
+          </div>
+          <span class="text-xs bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md text-slate-500 font-medium">Real-Time Sync</span>
+        </div>
+        <div class="h-64">
+          <canvas id="velocityChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 2: Sentiment Distribution & Channel Breakdown -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div>
+          <h2 class="text-base font-bold mb-1">Sentiment Distribution</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Public impression across news and social media</p>
+          <div class="h-48 relative flex items-center justify-center">
+            <canvas id="sentimentDoughnut"></canvas>
+          </div>
+        </div>
+        
+        <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 grid grid-cols-3 text-center text-xs">
+          <div>
+            <span class="block font-bold text-emerald-500 text-sm">68%</span>
+            <span class="text-slate-500">Positive</span>
+          </div>
+          <div>
+            <span class="block font-bold text-slate-400 text-sm">18%</span>
+            <span class="text-slate-500">Neutral</span>
+          </div>
+          <div>
+            <span class="block font-bold text-rose-500 text-sm">14%</span>
+            <span class="text-slate-500">Negative</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ISLAND DISTRICT SENTIMENT BREAKDOWN -->
+    <section class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-base font-bold">Island & District Operational Sentiment</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Localized news & public sentiment across Family Islands and New Providence</p>
+        </div>
+        <span class="text-xs text-bahama-aqua font-semibold">14 Active Districts</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <!-- New Providence -->
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+          <div class="flex justify-between items-center text-xs font-bold mb-1">
+            <span>New Providence</span>
+            <span class="text-emerald-500">72% +</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
+            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 72%"></div>
+          </div>
+          <p class="text-[10px] text-slate-500">Focus: Breakfast Program & BHSD targets</p>
+        </div>
+
+        <!-- Grand Bahama -->
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+          <div class="flex justify-between items-center text-xs font-bold mb-1">
+            <span>Grand Bahama</span>
+            <span class="text-emerald-500">81% +</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
+            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 81%"></div>
+          </div>
+          <p class="text-[10px] text-slate-500">Focus: STEM Labs & TVET Expansion</p>
+        </div>
+
+        <!-- Abaco -->
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+          <div class="flex justify-between items-center text-xs font-bold mb-1">
+            <span>Abaco</span>
+            <span class="text-emerald-500">65% +</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
+            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 65%"></div>
+          </div>
+          <p class="text-[10px] text-slate-500">Focus: School rebuilding completion</p>
+        </div>
+
+        <!-- Eleuthera -->
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+          <div class="flex justify-between items-center text-xs font-bold mb-1">
+            <span>Eleuthera</span>
+            <span class="text-amber-500">58% +</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
+            <div class="bg-amber-500 h-1.5 rounded-full" style="width: 58%"></div>
+          </div>
+          <p class="text-[10px] text-slate-500">Focus: Teacher accommodation support</p>
+        </div>
+
+        <!-- Exuma & Cays -->
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+          <div class="flex justify-between items-center text-xs font-bold mb-1">
+            <span>Exuma & Cays</span>
+            <span class="text-emerald-500">79% +</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
+            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 79%"></div>
+          </div>
+          <p class="text-[10px] text-slate-500">Focus: BTVI satellite course additions</p>
+        </div>
+
+        <!-- Southern Family Islands -->
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+          <div class="flex justify-between items-center text-xs font-bold mb-1">
+            <span>Southern Islands</span>
+            <span class="text-emerald-500">88% +</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
+            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 88%"></div>
+          </div>
+          <p class="text-[10px] text-slate-500">Focus: Distance learning technology</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE MEDIA FEED & FILTERS -->
+    <section class="space-y-4">
+      
+      <!-- Filter Bar -->
+      <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+        
+        <!-- Search Input -->
+        <div class="relative w-full md:w-80">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input type="text" id="searchInput" onkeyup="filterPosts()" placeholder="Search mentions, keywords, outlets..." class="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs focus:ring-2 focus:ring-bahama-aqua text-slate-900 dark:text-white placeholder-slate-400">
+        </div>
+
+        <!-- Channel Filter Buttons -->
+        <div class="flex items-center space-x-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+          <button onclick="setSourceFilter('ALL')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-bahama-aqua text-white shadow-sm transition" data-source="ALL">All Sources</button>
+          <button onclick="setSourceFilter('News')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="News">News Outlets</button>
+          <button onclick="setSourceFilter('Facebook')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="Facebook">Facebook</button>
+          <button onclick="setSourceFilter('X')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="X">X (Twitter)</button>
+          <button onclick="setSourceFilter('Instagram')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="Instagram">Instagram</button>
+        </div>
+
+        <!-- Sentiment Filter Dropdown -->
+        <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+          <label class="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Sentiment:</label>
+          <select id="sentimentFilter" onchange="filterPosts()" class="bg-slate-100 dark:bg-slate-800 text-xs text-slate-900 dark:text-white border-none rounded-lg px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
+            <option value="ALL">All Sentiments</option>
+            <option value="POSITIVE">Positive (+)</option>
+            <option value="NEUTRAL">Neutral (=)</option>
+            <option value="NEGATIVE">Negative (-)</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- Topic Hashtags Pills -->
+      <div class="flex flex-wrap gap-2 items-center">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider me-1">Trending Topics:</span>
+        <button onclick="filterHashtag('#SchoolBreakfast')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition">#SchoolBreakfast</button>
+        <button onclick="filterHashtag('#STEMBahamas')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition">#STEMBahamas</button>
+        <button onclick="filterHashtag('#SchoolACRepairs')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition">#SchoolACRepairs</button>
+        <button onclick="filterHashtag('#BGCSE2026')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition">#BGCSE2026</button>
+        <button onclick="filterHashtag('#BUT_Union')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition">#BUT_Union</button>
+        <button onclick="filterHashtag('#BHSD')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-bahama-aqua/10 text-bahama-aqua border border-bahama-aqua/20 hover:bg-bahama-aqua/20 transition">#BHSD</button>
+        <button onclick="clearHashtagFilter()" class="text-xs text-slate-400 hover:text-slate-600 underline ms-2">Reset Hashtags</button>
+      </div>
+
+      <!-- Feed Cards Container -->
+      <div id="postsFeed" class="space-y-3">
+        <!-- Dynamic posts inserted here by JS -->
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-8 text-xs text-center text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <p>© 2026 Ministry of Education, Science and Technology (MOEST), Commonwealth of The Bahamas.</p>
+      <div class="flex items-center space-x-4">
+        <span>Communications Section Intelligence Unit</span>
+        <span>•</span>
+        <span class="text-emerald-500 font-medium"><i class="fa-solid fa-circle text-[8px] me-1"></i> Live Media Stream Active</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- DRAFT RESPONSE MODAL -->
+  <div id="responseModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative space-y-4">
+      
+      <div class="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-feather-pointed text-bahama-aqua"></i> Draft Official Communications Response
+          </h3>
+          <p class="text-xs text-slate-500">Ministry of Education, Science and Technology Press Office</p>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Context Preview -->
+      <div class="p-3 bg-slate-100 dark:bg-slate-800/80 rounded-lg text-xs space-y-1 border border-slate-200 dark:border-slate-700">
+        <div class="flex items-center justify-between font-bold text-slate-700 dark:text-slate-300">
+          <span id="modalSource">Target Post / Article</span>
+          <span id="modalSentimentBadge" class="px-2 py-0.5 rounded text-[10px]">Sentiment</span>
+        </div>
+        <p id="modalSnippet" class="text-slate-600 dark:text-slate-400 italic">"Snippet text..."</p>
+      </div>
+
+      <!-- Response Template Selector -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Select Response Template:</label>
+        <select id="templateSelect" onchange="applyTemplate()" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-bahama-aqua">
+          <option value="clarification">Official Clarification Statement</option>
+          <option value="action_taken">Service Update / Maintenance Advisory</option>
+          <option value="appreciation">Public Appreciation & Educational Achievement Notice</option>
+        </select>
+      </div>
+
+      <!-- Editable Text Area -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Response Body:</label>
+        <textarea id="responseBody" rows="5" class="w-full p-3 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-bahama-aqua font-sans leading-relaxed"></textarea>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-between items-center pt-2">
+        <span class="text-[11px] text-slate-400"><i class="fa-solid fa-lock me-1"></i> Requires Chief Communications Officer sign-off</span>
+        <div class="flex space-x-2">
+          <button onclick="closeModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-700 transition">Cancel</button>
+          <button onclick="saveResponseToMinistryData()" id="saveResponseBtn" class="px-4 py-2 bg-bahama-aqua text-white rounded-lg text-xs font-bold hover:bg-bahama-aqualight transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-floppy-disk"></i> Save to Ministry Data
+          </button>
+          <button onclick="copyResponse()" class="px-4 py-2 bg-bahama-gold text-slate-950 rounded-lg text-xs font-bold hover:bg-yellow-400 transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-copy"></i> Copy to Clipboard
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APP LOGIC -->
+  <script>
+    // INITIAL MOCK DATA FEED FOR MOEST BAHAMAS
+    const initialPosts = [
+      {
+        id: 1,
+        story: "breakfast-program-expansion",
+        author: "ZNS Bahamas",
+        handle: "@ZNSBahamas",
+        source: "News",
+        icon: "fa-newspaper",
+        time: "12 mins ago",
+        content: "Minister of Education announces full rollout of the National Primary School Breakfast Program across 8 additional Family Island primary schools, serving over 14,350 daily hot meals. #SchoolBreakfast #MOESTBahamas #FamilyIslands",
+        sentiment: "POSITIVE",
+        reach: "38.5K",
+        likes: 412,
+        shares: 89,
+        priority: false
+      },
+      {
+        id: 2,
+        story: "gov-high-ac-repairs",
+        author: "Bahamas Press",
+        handle: "@BahamasPress",
+        source: "Facebook",
+        icon: "fa-facebook",
+        time: "35 mins ago",
+        content: "Parents express frustration over cooling system repairs at Government High School during afternoon heat. MOEST maintenance teams dispatched to replace compressor units. #SchoolACRepairs #NewProvidence",
+        sentiment: "NEGATIVE",
+        reach: "24.1K",
+        likes: 189,
+        shares: 114,
+        priority: true
+      },
+      {
+        id: 3,
+        story: "bgcse-bjc-stem-registration",
+        author: "The Tribune 242",
+        handle: "@Tribune242",
+        source: "News",
+        icon: "fa-newspaper",
+        time: "1 hour ago",
+        content: "BGCSE and BJC national examination registration hits record high in STEM subjects. Examination Assessment Division confirms all centers prepared across Grand Bahama and New Providence. #BGCSE2026 #BahamasEducation",
+        sentiment: "POSITIVE",
+        reach: "19.8K",
+        likes: 276,
+        shares: 45,
+        priority: false
+      },
+      {
+        id: 4,
+        story: "but-consultative-meeting",
+        author: "Bahamas Union of Teachers (BUT)",
+        handle: "@BUT_Official",
+        source: "X",
+        icon: "fa-x-twitter",
+        time: "2 hours ago",
+        content: "Constructive consultative meeting held with MOEST executive team regarding specialized teacher stipends and Family Island housing allowances for 2026/2027 academic year. #BUT_Union #TeacherSupport",
+        sentiment: "NEUTRAL",
+        reach: "12.4K",
+        likes: 95,
+        shares: 23,
+        priority: false
+      },
+      {
+        id: 5,
+        story: "bhsd-graduation-rate",
+        author: "Nassau Guardian",
+        handle: "@NassauGuardian",
+        source: "News",
+        icon: "fa-newspaper",
+        time: "3 hours ago",
+        content: "Bahamas High School Diploma (BHSD) national graduation rate tracks upward toward 59.4%, advancing steady progress toward national target of 85% by 2030. #BHSD #BahamasEducation #MOEST",
+        sentiment: "POSITIVE",
+        reach: "31.0K",
+        likes: 380,
+        shares: 92,
+        priority: false
+      },
+      {
+        id: 6,
+        story: "btvi-exuma-upgrades",
+        author: "Parent Teacher Voice Exuma",
+        handle: "@ExumaParents",
+        source: "Instagram",
+        icon: "fa-instagram",
+        time: "4 hours ago",
+        content: "Great seeing the BTVI extension campus facilities being upgraded in George Town! Good opportunities for high school graduates staying on island. #STEMBahamas #Exuma #MOESTBahamas",
+        sentiment: "POSITIVE",
+        reach: "8.7K",
+        likes: 154,
+        shares: 18,
+        priority: false
+      }
+    ];
+
+    let postsData = [...initialPosts];
+    let currentSourceFilter = 'ALL';
+    let currentSentimentFilter = 'ALL';
+    let currentHashtagFilter = null;
+    let selectedPostForResponse = null;
+
+    // CHARTS INITIALIZATION
+    let velocityChart, sentimentDoughnut;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initCharts();
+      renderFeed();
+      loadQuickStats();
+    });
+
+    // Live counts for the Stories & Ministry Data quick-access cards
+    let storyIdsBySlug = {};
+    async function loadQuickStats() {
+      try {
+        const [stories, records] = await Promise.all([MOEST.api('/api/stories'), MOEST.api('/api/records')]);
+        stories.forEach(s => { storyIdsBySlug[s.slug] = s.id; });
+        const links = stories.reduce((n, s) => n + s.links.length, 0);
+        const videos = stories.filter(s => s.videoUrl).length;
+        document.getElementById('storiesQuickStat').textContent = `${stories.length} full stories · ${videos} with video · ${links} related links`;
+        const drafts = records.filter(r => r.status === 'Draft' || r.status === 'In Review').length;
+        document.getElementById('recordsQuickStat').textContent = `${records.length} records · ${drafts} awaiting sign-off`;
+      } catch (e) {
+        document.getElementById('storiesQuickStat').textContent = 'Open the full story library';
+        document.getElementById('recordsQuickStat').textContent = 'Open Ministry records';
+      }
+    }
+
+    // Persist the drafted response as a Ministry Data record
+    async function saveResponseToMinistryData() {
+      if (!selectedPostForResponse) return;
+      const btn = document.getElementById('saveResponseBtn');
+      btn.disabled = true;
+      const templateLabel = document.getElementById('templateSelect').selectedOptions[0].text;
+      try {
+        const record = await MOEST.api('/api/records', {
+          method: 'POST',
+          body: {
+            kind: 'Response',
+            status: 'Draft',
+            title: `${templateLabel}: ${selectedPostForResponse.author}`,
+            body: document.getElementById('responseBody').value,
+            author: localStorage.getItem('moest-user') || 'Communications Section',
+            department: 'Communications',
+            storyId: storyIdsBySlug[selectedPostForResponse.story] || null,
+          },
+        });
+        closeModal();
+        MOEST.toast('Response saved to Ministry Data');
+        loadQuickStats();
+        setTimeout(() => { if (confirm('Response saved. Open it in Ministry Data to edit or export?')) location.href = `/ministry-data.html?record=${record.id}`; }, 50);
+      } catch (e) {
+        MOEST.toast(e.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Filter Logic
+    function setSourceFilter(source) {
+      currentSourceFilter = source;
+      document.querySelectorAll('.source-btn').forEach(btn => {
+        if(btn.dataset.source === source) {
+          btn.className = "source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-bahama-aqua text-white shadow-sm transition";
+        } else {
+          btn.className = "source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition";
+        }
+      });
+      renderFeed();
+    }
+
+    function filterHashtag(tag) {
+      currentHashtagFilter = tag;
+      renderFeed();
+    }
+
+    function clearHashtagFilter() {
+      currentHashtagFilter = null;
+      renderFeed();
+    }
+
+    function filterPosts() {
+      renderFeed();
+    }
+
+    // Render Feed Cards
+    function renderFeed() {
+      const feedContainer = document.getElementById('postsFeed');
+      const searchVal = document.getElementById('searchInput').value.toLowerCase();
+      const sentimentVal = document.getElementById('sentimentFilter').value;
+
+      const filtered = postsData.filter(post => {
+        const matchesSource = currentSourceFilter === 'ALL' || post.source === currentSourceFilter;
+        const matchesSentiment = sentimentVal === 'ALL' || post.sentiment === sentimentVal;
+        const matchesSearch = post.content.toLowerCase().includes(searchVal) || post.author.toLowerCase().includes(searchVal);
+        const matchesHashtag = !currentHashtagFilter || post.content.includes(currentHashtagFilter);
+
+        return matchesSource && matchesSentiment && matchesSearch && matchesHashtag;
+      });
+
+      if (filtered.length === 0) {
+        feedContainer.innerHTML = `
+          <div class="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
+            <i class="fa-solid fa-folder-open text-3xl mb-2"></i>
+            <p class="text-xs">No media mentions found matching your active filter criteria.</p>
+          </div>
+        `;
+        return;
+      }
+
+      feedContainer.innerHTML = filtered.map(post => {
+        let badgeColor = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+        let sentimentText = "+ Positive";
+        if (post.sentiment === "NEGATIVE") {
+          badgeColor = "bg-rose-500/10 text-rose-500 border-rose-500/20";
+          sentimentText = "- Negative";
+        } else if (post.sentiment === "NEUTRAL") {
+          badgeColor = "bg-slate-500/10 text-slate-400 border-slate-500/20";
+          sentimentText = "= Neutral";
+        }
+
+        return `
+          <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border ${post.priority ? 'border-rose-500/50 dark:border-rose-500/40' : 'border-slate-200 dark:border-slate-800'} shadow-sm transition hover:border-bahama-aqua/50">
+            <div class="flex items-start justify-between gap-3">
+              
+              <!-- Author & Channel Info -->
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                  <i class="fa-solid ${post.icon} text-base"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-xs font-bold text-slate-900 dark:text-white">${post.author}</h4>
+                    <span class="text-[11px] text-slate-400">${post.handle}</span>
+                    <span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded">${post.source}</span>
+                  </div>
+                  <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock me-1"></i>${post.time}</span>
+                </div>
+              </div>
+
+              <!-- Sentiment Badge & Alert Indicator -->
+              <div class="flex items-center space-x-2">
+                ${post.priority ? `<span class="bg-rose-500/20 text-rose-500 text-[10px] font-bold px-2 py-0.5 rounded border border-rose-500/30 animate-pulse"><i class="fa-solid fa-triangle-exclamation me-1"></i> Priority Alert</span>` : ''}
+                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded border ${badgeColor}">
+                  ${sentimentText}
+                </span>
+              </div>
+
+            </div>
+
+            <!-- Content Body -->
+            <p class="text-xs text-slate-700 dark:text-slate-200 mt-3 leading-relaxed font-sans">
+              ${highlightHashtags(post.content)}
+            </p>
+
+            <!-- Metrics & Response Actions -->
+            <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+              <div class="flex items-center space-x-4">
+                <span><i class="fa-solid fa-eye me-1 text-bahama-aqua"></i> ${post.reach} Reach</span>
+                <span><i class="fa-solid fa-thumbs-up me-1"></i> ${post.likes}</span>
+                <span><i class="fa-solid fa-share me-1"></i> ${post.shares}</span>
+              </div>
+
+              <div class="flex items-center gap-4">
+                ${post.story ? `<a href="/stories.html#${post.story}" class="text-slate-500 dark:text-slate-300 hover:text-bahama-aqua text-xs font-bold flex items-center gap-1 transition">
+                  <i class="fa-solid fa-book-open"></i> Read Full Story
+                </a>` : ''}
+                <button onclick="openResponseModal(${post.id})" class="text-bahama-aqua hover:text-bahama-aqualight text-xs font-bold flex items-center gap-1 transition">
+                  <i class="fa-solid fa-reply"></i> Draft Official Response
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function highlightHashtags(text) {
+      return text.replace(/#(\w+)/g, '<span class="text-bahama-aqua font-semibold hover:underline cursor-pointer" onclick="filterHashtag(\'#$1\')">#$1</span>');
+    }
+
+    // Modal Operations
+    function openResponseModal(postId) {
+      const post = postsData.find(p => p.id === postId);
+      if(!post) return;
+      selectedPostForResponse = post;
+
+      document.getElementById('modalSource').innerText = `${post.author} (${post.source})`;
+      document.getElementById('modalSnippet').innerText = `"${post.content}"`;
+      
+      const badge = document.getElementById('modalSentimentBadge');
+      badge.innerText = post.sentiment;
+      badge.className = post.sentiment === 'NEGATIVE' ? 'px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-500' : 'px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-500';
+
+      applyTemplate();
+      document.getElementById('responseModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('responseModal').classList.add('hidden');
+    }
+
+    function applyTemplate() {
+      const template = document.getElementById('templateSelect').value;
+      const body = document.getElementById('responseBody');
+
+      if (!selectedPostForResponse) return;
+
+      if (template === 'clarification') {
+        body.value = `OFFICIAL MEDIA STATEMENT (MOEST BAHAMAS):\n\nThe Ministry of Education, Science and Technology wishes to clarify recent public commentary regarding ${selectedPostForResponse.author}'s report. MOEST remains fully committed to operational excellence and transparency across all public schools in The Bahamas. Official updates are continually published via our Communications Section.`;
+      } else if (template === 'action_taken') {
+        body.value = `MINISTRY OF EDUCATION SERVICE ADVISORY:\n\nRegarding the matter highlighted by ${selectedPostForResponse.author}, MOEST technical teams are actively addressing the issue. Maintenance and district superintendents are on-site to ensure optimal conditions for all students and teaching personnel.`;
+      } else if (template === 'appreciation') {
+        body.value = `PRESS RELEASE / PUBLIC NOTICE:\n\nThe Ministry of Education, Science and Technology acknowledges and commends the positive educational milestones highlighted recently. We thank our teachers, administrators, and community partners for their dedicated service toward expanding student opportunities across all islands.`;
+      }
+    }
+
+    function copyResponse() {
+      const text = document.getElementById('responseBody').value;
+      navigator.clipboard.writeText(text);
+      alert("Official response draft copied to clipboard!");
+      closeModal();
+    }
+
+    // Simulate Fresh Real-time Mention
+    function simulateNewPost() {
+      const sampleTopics = [
+        { story: "digital-literacy-curriculum", author: "ZNS News Nightly", handle: "@ZNSNightly", source: "News", icon: "fa-newspaper", content: "MOEST releases updated curriculum guidelines for digital literacy and coding in primary schools across Abaco and Eleuthera. #STEMBahamas #MOEST", sentiment: "POSITIVE" },
+        { author: "Bahama Voice Online", handle: "@BahamaVoice", source: "X", icon: "fa-x-twitter", content: "Inquiry raised regarding textbook distribution timing for secondary centers in Southern Bahamas. #BahamasEducation", sentiment: "NEGATIVE", priority: true },
+        { author: "Grand Bahama Educator", handle: "@GB_Teacher", source: "Facebook", icon: "fa-facebook", content: "Successful completion of teacher professional development workshop in Freeport! Great energy from all participants. #BUT_Union #GrandBahama", sentiment: "POSITIVE" }
+      ];
+
+      const newMention = sampleTopics[Math.floor(Math.random() * sampleTopics.length)];
+      const newPostObj = {
+        id: Date.now(),
+        story: newMention.story || null,
+        author: newMention.author,
+        handle: newMention.handle,
+        source: newMention.source,
+        icon: newMention.icon,
+        time: "Just now",
+        content: newMention.content,
+        sentiment: newMention.sentiment,
+        reach: (Math.random() * 15 + 5).toFixed(1) + "K",
+        likes: Math.floor(Math.random() * 80 + 10),
+        shares: Math.floor(Math.random() * 20 + 2),
+        priority: newMention.priority || false
+      };
+
+      postsData.unshift(newPostObj);
+      renderFeed();
+
+      // Update Ticker
+      const ticker = document.getElementById('tickerContent');
+      ticker.innerHTML = `<span><b>JUST IN (${newMention.author}):</b> ${newMention.content}</span> ` + ticker.innerHTML;
+    }
+
+    // Briefs and other in-house documents are produced from the Ministry Data workspace
+    function exportBriefing() {
+      location.href = '/ministry-data.html';
+    }
+
+    // CHART.JS INITIALIZATION
+    function initCharts() {
+      // Line Chart: Velocity Trend
+      const ctxVelocity = document.getElementById('velocityChart').getContext('2d');
+      velocityChart = new Chart(ctxVelocity, {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [
+            {
+              label: 'Positive Coverage',
+              data: [180, 210, 290, 340, 310, 420, 480],
+              borderColor: '#10B981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              fill: true,
+              tension: 0.3
+            },
+            {
+              label: 'Negative / Issue Coverage',
+              data: [45, 60, 40, 85, 50, 65, 40],
+              borderColor: '#F43F5E',
+              backgroundColor: 'rgba(244, 63, 94, 0.05)',
+              fill: true,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#94A3B8', font: { size: 11 } }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#94A3B8' } },
+            y: { grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94A3B8' } }
+          }
+        }
+      });
+
+      // Doughnut Chart: Sentiment Share
+      const ctxSentiment = document.getElementById('sentimentDoughnut').getContext('2d');
+      sentimentDoughnut = new Chart(ctxSentiment, {
+        type: 'doughnut',
+        data: {
+          labels: ['Positive', 'Neutral', 'Negative'],
+          datasets: [{
+            data: [68, 18, 14],
+            backgroundColor: ['#10B981', '#94A3B8', '#F43F5E'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          cutout: '72%'
+        }
+      });
+    }
+  </script>
+</body>
+</html>
