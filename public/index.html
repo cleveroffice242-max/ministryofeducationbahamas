@@ -119,6 +119,20 @@
   <!-- MAIN CONTENT CONTAINER -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-6">
 
+    <!-- PHOTO BANNER -->
+    <section class="relative overflow-hidden rounded-2xl shadow-lg min-h-[230px] sm:min-h-[270px] flex items-end isolate">
+      <img src="/assets/img/hero-dashboard.webp" alt="" class="absolute inset-0 w-full h-full object-cover -z-20" fetchpriority="high">
+      <div class="absolute inset-0 bg-gradient-to-r from-bahama-navy/95 via-bahama-navy/70 to-bahama-navy/10 -z-10"></div>
+      <svg class="absolute left-0 top-0 h-full w-20 sm:w-28 -z-10" viewBox="0 0 100 200" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,0 100,100 0,200" fill="#0B192C" opacity=".9"/></svg>
+      <div class="absolute inset-x-0 bottom-0 h-1.5 flex" aria-hidden="true"><span class="flex-1 bg-bahama-aqualight"></span><span class="flex-1 bg-bahama-gold"></span><span class="flex-1 bg-bahama-aqualight"></span></div>
+      <div class="relative p-6 sm:p-8 sm:ps-14 max-w-2xl text-white">
+        <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-bahama-gold flex items-center gap-2"><span class="w-6 h-0.5 bg-bahama-gold"></span>Media Command Center</p>
+        <h2 class="text-2xl sm:text-3xl font-extrabold mt-2 leading-tight drop-shadow">Every education story across The Bahamas, as it breaks.</h2>
+        <p class="text-sm text-slate-200 mt-2 leading-relaxed">Live monitoring of Bahamian news outlets, broadcast and social channels for coverage of our schools, students, teachers and campuses — from New Providence to the Family Islands.</p>
+        <div class="flex flex-wrap gap-2 mt-4 text-[11px] font-semibold"><span class="bg-white/10 backdrop-blur border border-white/20 px-2.5 py-1 rounded-full"><i class="fa-solid fa-satellite-dish text-bahama-gold me-1"></i>11 live sources</span><span class="bg-white/10 backdrop-blur border border-white/20 px-2.5 py-1 rounded-full"><i class="fa-solid fa-clock text-bahama-gold me-1"></i>Checked every minute</span><span class="bg-white/10 backdrop-blur border border-white/20 px-2.5 py-1 rounded-full"><i class="fa-solid fa-wand-magic-sparkles text-bahama-gold me-1"></i>AI sentiment scoring</span><span class="bg-white/10 backdrop-blur border border-white/20 px-2.5 py-1 rounded-full"><i class="fa-solid fa-map-location-dot text-bahama-gold me-1"></i>All islands</span></div>
+      </div>
+    </section>
+
     <!-- OVERVIEW METRICS GRID -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       
@@ -186,26 +200,34 @@
 
     <!-- QUICK ACCESS: STORIES & MINISTRY DATA -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <a href="/stories.html" class="group bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-bahama-aqua/60 transition flex items-start gap-4">
-        <div class="w-11 h-11 rounded-lg bg-bahama-aqua/10 text-bahama-aqua flex items-center justify-center shrink-0"><i class="fa-solid fa-newspaper text-lg"></i></div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold">Stories & Media Library</h2>
-            <i class="fa-solid fa-arrow-right text-xs text-slate-400 group-hover:text-bahama-aqua group-hover:translate-x-1 transition"></i>
+      <a href="/stories.html" class="group relative overflow-hidden rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-bahama-aqua/60 transition flex min-h-[150px] isolate">
+        <img src="/assets/img/newsroom.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-105 transition duration-500">
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/30 -z-10"></div>
+        <div class="p-5 flex items-start gap-4 text-white">
+          <div class="w-11 h-11 rounded-lg bg-bahama-aqua text-white flex items-center justify-center shrink-0 shadow-lg"><i class="fa-solid fa-newspaper text-lg"></i></div>
+          <div class="flex-1 min-w-0 max-w-md">
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-bold">Stories & Media Library</h2>
+              <i class="fa-solid fa-arrow-right text-xs text-slate-300 group-hover:translate-x-1 transition"></i>
+            </div>
+            <p class="text-xs text-slate-300 mt-1">Read every monitored news & social story in full — photos, embedded video, original sources and team-added related links.</p>
+            <p class="text-[11px] text-bahama-aqualight font-semibold mt-2" id="storiesQuickStat"><i class="fa-solid fa-circle-notch fa-spin me-1"></i> Loading…</p>
           </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Read every monitored news & social story in full — photos, embedded video, original sources and team-added related links.</p>
-          <p class="text-[11px] text-bahama-aqua font-semibold mt-2" id="storiesQuickStat"><i class="fa-solid fa-circle-notch fa-spin me-1"></i> Loading…</p>
         </div>
       </a>
-      <a href="/ministry-data.html" class="group bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-bahama-gold/70 transition flex items-start gap-4">
-        <div class="w-11 h-11 rounded-lg bg-bahama-gold/15 text-amber-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-folder-tree text-lg"></i></div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between">
-            <h2 class="text-sm font-bold">Ministry Data</h2>
-            <i class="fa-solid fa-arrow-right text-xs text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition"></i>
+      <a href="/ministry-data.html" class="group relative overflow-hidden rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-bahama-gold/70 transition flex min-h-[150px] isolate">
+        <img src="/assets/img/hero-data.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-105 transition duration-500">
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/30 -z-10"></div>
+        <div class="p-5 flex items-start gap-4 text-white">
+          <div class="w-11 h-11 rounded-lg bg-bahama-gold text-slate-950 flex items-center justify-center shrink-0 shadow-lg"><i class="fa-solid fa-folder-tree text-lg"></i></div>
+          <div class="flex-1 min-w-0 max-w-md">
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-bold">Ministry Data</h2>
+              <i class="fa-solid fa-arrow-right text-xs text-slate-300 group-hover:translate-x-1 transition"></i>
+            </div>
+            <p class="text-xs text-slate-300 mt-1">All official responses, write-ups, press releases and data briefs — edit them and share as PDF, PNG or SVG.</p>
+            <p class="text-[11px] text-bahama-gold font-semibold mt-2" id="recordsQuickStat"><i class="fa-solid fa-circle-notch fa-spin me-1"></i> Loading…</p>
           </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">All official responses, write-ups, press releases and data briefs — edit them and share as PDF, PNG or SVG.</p>
-          <p class="text-[11px] text-amber-500 font-semibold mt-2" id="recordsQuickStat"><i class="fa-solid fa-circle-notch fa-spin me-1"></i> Loading…</p>
         </div>
       </a>
     </section>
@@ -267,6 +289,59 @@
 
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="islandGrid">
         <p class="col-span-full text-xs text-slate-400">Loading island coverage…</p>
+      </div>
+    </section>
+
+
+    <!-- EDUCATION FOCUS AREAS -->
+    <section aria-labelledby="focusHeading">
+      <div class="flex items-end justify-between mb-3">
+        <div>
+          <h2 id="focusHeading" class="text-base font-bold">Education Focus Areas</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Tap a theme to search the live feed for it</p>
+        </div>
+      </div>
+      <div class="flex sm:grid sm:grid-cols-4 lg:grid-cols-8 gap-3 overflow-x-auto snap-x pb-1">
+        <button type="button" onclick="searchTopic('teacher')" class="group relative shrink-0 w-44 sm:w-auto h-28 rounded-xl overflow-hidden snap-start text-left isolate focus:outline-none focus:ring-2 focus:ring-bahama-gold">
+          <img src="/assets/img/classroom.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-110 transition duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent -z-10"></div>
+          <span class="absolute bottom-2 left-3 right-3 text-white text-xs font-bold leading-tight">Classrooms &amp; Teachers<span class="block text-[10px] font-medium text-bahama-gold">#Teachers</span></span>
+        </button>
+        <button type="button" onclick="searchTopic('read')" class="group relative shrink-0 w-44 sm:w-auto h-28 rounded-xl overflow-hidden snap-start text-left isolate focus:outline-none focus:ring-2 focus:ring-bahama-gold">
+          <img src="/assets/img/reading.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-110 transition duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent -z-10"></div>
+          <span class="absolute bottom-2 left-3 right-3 text-white text-xs font-bold leading-tight">Early Literacy<span class="block text-[10px] font-medium text-bahama-gold">#Literacy</span></span>
+        </button>
+        <button type="button" onclick="searchTopic('science')" class="group relative shrink-0 w-44 sm:w-auto h-28 rounded-xl overflow-hidden snap-start text-left isolate focus:outline-none focus:ring-2 focus:ring-bahama-gold">
+          <img src="/assets/img/stem.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-110 transition duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent -z-10"></div>
+          <span class="absolute bottom-2 left-3 right-3 text-white text-xs font-bold leading-tight">STEM &amp; Innovation<span class="block text-[10px] font-medium text-bahama-gold">#STEM</span></span>
+        </button>
+        <button type="button" onclick="searchTopic('digital')" class="group relative shrink-0 w-44 sm:w-auto h-28 rounded-xl overflow-hidden snap-start text-left isolate focus:outline-none focus:ring-2 focus:ring-bahama-gold">
+          <img src="/assets/img/technology.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-110 transition duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent -z-10"></div>
+          <span class="absolute bottom-2 left-3 right-3 text-white text-xs font-bold leading-tight">Digital Learning<span class="block text-[10px] font-medium text-bahama-gold">#Technology</span></span>
+        </button>
+        <button type="button" onclick="searchTopic('university')" class="group relative shrink-0 w-44 sm:w-auto h-28 rounded-xl overflow-hidden snap-start text-left isolate focus:outline-none focus:ring-2 focus:ring-bahama-gold">
+          <img src="/assets/img/university.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-110 transition duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent -z-10"></div>
+          <span class="absolute bottom-2 left-3 right-3 text-white text-xs font-bold leading-tight">Higher Education<span class="block text-[10px] font-medium text-bahama-gold">#HigherEd</span></span>
+        </button>
+        <button type="button" onclick="searchTopic('island')" class="group relative shrink-0 w-44 sm:w-auto h-28 rounded-xl overflow-hidden snap-start text-left isolate focus:outline-none focus:ring-2 focus:ring-bahama-gold">
+          <img src="/assets/img/family-island.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-110 transition duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent -z-10"></div>
+          <span class="absolute bottom-2 left-3 right-3 text-white text-xs font-bold leading-tight">Family Island Schools<span class="block text-[10px] font-medium text-bahama-gold">#FamilyIslands</span></span>
+        </button>
+        <button type="button" onclick="searchTopic('sport')" class="group relative shrink-0 w-44 sm:w-auto h-28 rounded-xl overflow-hidden snap-start text-left isolate focus:outline-none focus:ring-2 focus:ring-bahama-gold">
+          <img src="/assets/img/sports.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-110 transition duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent -z-10"></div>
+          <span class="absolute bottom-2 left-3 right-3 text-white text-xs font-bold leading-tight">Student Sports<span class="block text-[10px] font-medium text-bahama-gold">#Sports</span></span>
+        </button>
+        <button type="button" onclick="searchTopic('scholarship')" class="group relative shrink-0 w-44 sm:w-auto h-28 rounded-xl overflow-hidden snap-start text-left isolate focus:outline-none focus:ring-2 focus:ring-bahama-gold">
+          <img src="/assets/img/graduation.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-110 transition duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent -z-10"></div>
+          <span class="absolute bottom-2 left-3 right-3 text-white text-xs font-bold leading-tight">Exams &amp; Scholarships<span class="block text-[10px] font-medium text-bahama-gold">#Scholarships</span></span>
+        </button>
       </div>
     </section>
 
@@ -701,6 +776,13 @@
       renderFeed();
     }
 
+    function searchTopic(q) {
+      const input = document.getElementById('searchInput');
+      input.value = input.value.toLowerCase() === q.toLowerCase() ? '' : q;
+      renderFeed();
+      document.getElementById('postsFeed').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     function filterPosts() {
       renderFeed();
     }
@@ -760,7 +842,7 @@
                 <a href="${esc(post.url)}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-slate-900 dark:text-white hover:text-bahama-aqua leading-snug">${esc(post.title)}</a>
                 ${post.summary && post.summary !== post.title ? `<p class="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed line-clamp-3">${esc(post.summary)}</p>` : ''}
               </div>
-              ${post.imageUrl ? `<img src="${esc(post.imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" class="w-24 h-16 object-cover rounded-lg shrink-0 hidden sm:block" onerror="this.remove()">` : ''}
+              ${MOEST.storyThumb(post.imageUrl, post.title + ' ' + (post.summary || ''), 'w-28 h-20 object-cover rounded-lg shrink-0 hidden sm:block shadow-sm', post.id)}
             </div>
 
             <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400 gap-3 flex-wrap">
