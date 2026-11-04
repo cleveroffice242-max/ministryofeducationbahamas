@@ -83,7 +83,7 @@
           </div>
           <select id="channelFilter" aria-label="Filter by channel" class="bg-slate-100 dark:bg-slate-800 text-xs border-none rounded-lg px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
             <option value="ALL">All channels</option>
-            <option>News</option><option>Facebook</option><option>X</option><option>Instagram</option><option>YouTube</option><option>TikTok</option><option>Other</option>
+            <option>News</option><option>YouTube</option><option>Reddit</option><option>Facebook</option><option>X</option><option>Instagram</option><option>TikTok</option><option>Other</option>
           </select>
           <select id="sentimentFilter" aria-label="Filter by sentiment" class="bg-slate-100 dark:bg-slate-800 text-xs border-none rounded-lg px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
             <option value="ALL">All sentiments</option>
@@ -95,10 +95,36 @@
       </div>
     </section>
 
+    <!-- Live coverage collected by the media monitor -->
+    <section class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 mb-6" aria-labelledby="liveHeading">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 id="liveHeading" class="text-base font-bold flex items-center gap-2">
+            <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span></span>
+            Live Coverage
+            <span id="liveCount" class="text-xs font-semibold text-slate-400"></span>
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Education stories picked up automatically from Bahamian news and social sources, checked every minute. Save any item to the library to add the full write-up, photos and related links.</p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span id="liveStatus" class="text-[11px] text-slate-500 dark:text-slate-400" aria-live="polite">Connecting…</span>
+          <button id="checkNowBtn" onclick="checkNow()" class="flex items-center gap-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
+            <i class="fa-solid fa-arrows-rotate"></i><span>Check Now</span>
+          </button>
+        </div>
+      </div>
+      <div id="liveList" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[34rem] overflow-y-auto pr-1">
+        <p class="text-xs text-slate-400 col-span-full"><i class="fa-solid fa-spinner fa-spin me-1"></i> Loading live coverage…</p>
+      </div>
+      <div class="mt-3 text-center">
+        <button id="liveMoreBtn" onclick="toggleLiveMore()" class="hidden text-xs font-semibold text-bahama-aqua hover:underline"></button>
+      </div>
+    </section>
+
     <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
       <!-- Story index -->
       <aside class="lg:sticky lg:top-36 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-3 hidden lg:block max-h-[calc(100vh-10rem)] overflow-y-auto">
-        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-2 py-1.5">In this library <span id="storyCount" class="text-bahama-aqua"></span></p>
+        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-2 py-1.5">Saved story library <span id="storyCount" class="text-bahama-aqua"></span></p>
         <ol id="storyIndex" class="space-y-0.5"></ol>
       </aside>
 
@@ -185,23 +211,55 @@
 
   <script>
     const { esc, api, toast, timeAgo, fmtDate, CHANNEL_ICONS, sentimentBadge, paragraphs, hostOf, videoEmbed } = MOEST;
+    const POLL_MS = 30_000;
+    const ICONS = { ...CHANNEL_ICONS, Reddit: 'fa-brands fa-reddit-alien' };
     let stories = [];
+    let storiesSig = '';
+    let pendingRender = false;
+    let mentions = [];
+    let knownMentionIds = null;
+    let freshMentionIds = new Set();
+    let monitor = { lastCheckedAt: null, sources: [], error: null };
+    let liveExpanded = false;
+    let prefillMention = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
       ['storySearch', 'channelFilter', 'sentimentFilter'].forEach((id) =>
-        document.getElementById(id).addEventListener('input', render));
+        document.getElementById(id).addEventListener('input', () => { render(); renderLive(); }));
       document.getElementById('storyForm').addEventListener('submit', saveStory);
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeLightbox(); closeStoryModal(); } });
+      loadMentions();
       await load();
       focusHash();
+      setInterval(() => { load(true); loadMentions(); }, POLL_MS);
+      setInterval(renderLiveStatus, 5000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) { load(true); loadMentions(); } });
+      // Apply an update that was held back while someone was typing in the library
+      document.addEventListener('focusout', () => setTimeout(() => { if (pendingRender && !isEditing()) render(); }, 0));
     });
     window.addEventListener('hashchange', focusHash);
 
-    async function load() {
+    // Re-rendering the library replaces forms and video players, so hold updates
+    // while someone is typing a related link or has the story editor open.
+    function isEditing() {
+      const a = document.activeElement;
+      const modalOpen = !document.getElementById('storyModal').classList.contains('hidden');
+      return modalOpen || (a && a.closest('#storiesList') && /INPUT|TEXTAREA|SELECT/.test(a.tagName));
+    }
+
+    async function load(background) {
       try {
-        stories = await api('/api/stories');
+        const next = await api('/api/stories');
+        const sig = JSON.stringify(next);
+        if (background && sig === storiesSig) return;
+        const added = background ? next.filter((s) => !stories.some((o) => o.id === s.id)) : [];
+        stories = next;
+        storiesSig = sig;
+        if (added.length) toast(`${added.length} new stor${added.length === 1 ? 'y' : 'ies'} added to the library`);
+        if (background && isEditing()) { pendingRender = true; return; }
         render();
       } catch (e) {
+        if (background) return;
         document.getElementById('storiesList').innerHTML =
           `<div class="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-rose-500 text-xs">
              <i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i>Could not load stories: ${esc(e.message)}</div>`;
@@ -219,11 +277,12 @@
     }
 
     function render() {
+      pendingRender = false;
       const list = filtered();
       document.getElementById('storyCount').textContent = `(${list.length})`;
       document.getElementById('storyIndex').innerHTML = list.map((s) => `
         <li><a href="#${esc(s.slug)}" class="flex gap-2 items-start px-2 py-2 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-          <i class="${CHANNEL_ICONS[s.channel] || CHANNEL_ICONS.Other} text-slate-400 mt-0.5 w-3.5"></i>
+          <i class="${ICONS[s.channel] || ICONS.Other} text-slate-400 mt-0.5 w-3.5"></i>
           <span><span class="font-semibold text-slate-700 dark:text-slate-200 line-clamp-2">${esc(s.title)}</span>
           <span class="block text-[10px] text-slate-400 mt-0.5">${esc(s.outlet)} · ${esc(timeAgo(s.publishedAt))}</span></span>
         </a></li>`).join('');
@@ -254,7 +313,7 @@
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                <i class="${CHANNEL_ICONS[s.channel] || CHANNEL_ICONS.Other}"></i>
+                <i class="${ICONS[s.channel] || ICONS.Other}"></i>
               </div>
               <div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -342,6 +401,117 @@
       catch { prompt('Copy this link:', url); }
     }
 
+    // ---------- Live coverage ----------
+    async function loadMentions() {
+      try {
+        const data = await api('/api/mentions');
+        monitor = { lastCheckedAt: data.lastCheckedAt, sources: data.sources, error: null };
+        if (knownMentionIds) {
+          const fresh = data.mentions.filter((m) => !knownMentionIds.has(m.id));
+          fresh.forEach((m) => freshMentionIds.add(m.id));
+          if (fresh.length) toast(`${fresh.length} new media mention${fresh.length === 1 ? '' : 's'} detected`);
+        }
+        knownMentionIds = new Set(data.mentions.map((m) => m.id));
+        mentions = data.mentions;
+        renderLive();
+        if (!data.lastCheckedAt) checkNow(true);
+      } catch (e) {
+        monitor.error = e.message;
+      }
+      renderLiveStatus();
+    }
+
+    async function checkNow(silent) {
+      const btn = document.getElementById('checkNowBtn');
+      btn.disabled = true;
+      btn.querySelector('i').classList.add('fa-spin');
+      try {
+        const r = await api('/api/mentions/refresh', { method: 'POST' });
+        if (!silent) toast(r.skipped ? 'Sources were checked moments ago — showing the latest' : `Checked all sources: ${r.inserted} new mention${r.inserted === 1 ? '' : 's'}`);
+        await Promise.all([loadMentions(), load(true)]);
+      } catch (e) {
+        if (!silent) toast(e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.querySelector('i').classList.remove('fa-spin');
+      }
+    }
+
+    function agoShort(date) {
+      const s = Math.max(0, Math.round((Date.now() - new Date(date).getTime()) / 1000));
+      if (s < 60) return `${s}s ago`;
+      if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+      return timeAgo(date);
+    }
+
+    function renderLiveStatus() {
+      const el = document.getElementById('liveStatus');
+      const last = monitor.lastCheckedAt;
+      const ok = monitor.sources.filter((s) => !s.lastError).length;
+      const total = monitor.sources.length;
+      if (monitor.error) el.innerHTML = '<span class="text-rose-500">Monitor unreachable — retrying</span>';
+      else if (!last) el.textContent = 'Waiting for the first check…';
+      else el.innerHTML = `Sources checked <b>${agoShort(last)}</b>${total ? ` · ${ok}/${total} online` : ''}`;
+      el.title = monitor.sources.map((s) => `${s.name}: ${s.lastError ? 'error – ' + s.lastError : 'OK'}`).join('\n');
+    }
+
+    function filteredMentions() {
+      const q = document.getElementById('storySearch').value.trim().toLowerCase();
+      const ch = document.getElementById('channelFilter').value;
+      const se = document.getElementById('sentimentFilter').value;
+      return mentions.filter((m) =>
+        (ch === 'ALL' || m.channel === ch) &&
+        (se === 'ALL' || m.sentiment === se) &&
+        (!q || [m.title, m.outlet, m.author, m.summary, m.topics].join(' ').toLowerCase().includes(q)));
+    }
+
+    function toggleLiveMore() { liveExpanded = !liveExpanded; renderLive(); }
+
+    function renderLive() {
+      const all = filteredMentions();
+      const list = liveExpanded ? all : all.slice(0, 12);
+      const saved = new Set(stories.map((s) => s.sourceUrl));
+      document.getElementById('liveCount').textContent = mentions.length ? `(${all.length} in the last 7 days)` : '';
+      const more = document.getElementById('liveMoreBtn');
+      more.classList.toggle('hidden', all.length <= 12);
+      more.textContent = liveExpanded ? 'Show fewer' : `Show all ${all.length} items`;
+      const box = document.getElementById('liveList');
+      if (!list.length) {
+        box.innerHTML = `<p class="text-xs text-slate-400 col-span-full py-6 text-center">${mentions.length ? 'No live coverage matches your filters.' : 'Waiting for the media monitor to collect coverage…'}</p>`;
+        return;
+      }
+      box.innerHTML = list.map((m) => {
+        const fresh = freshMentionIds.has(m.id);
+        const isSaved = saved.has(m.url);
+        return `
+        <article class="flex gap-3 p-3 rounded-xl border ${m.priority ? 'border-rose-500/50' : fresh ? 'border-bahama-gold/70' : 'border-slate-200 dark:border-slate-800'} bg-slate-50 dark:bg-slate-800/40">
+          ${m.imageUrl ? `<img src="${esc(m.imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" class="w-20 h-20 object-cover rounded-lg shrink-0" onerror="this.remove()">` : ''}
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap text-[10px] text-slate-400">
+              <i class="${ICONS[m.channel] || ICONS.Other}"></i>
+              <span class="font-bold text-slate-600 dark:text-slate-300">${esc(m.outlet)}</span>
+              <span title="${esc(fmtDate(m.publishedAt))}">${esc(agoShort(m.publishedAt))}</span>
+              ${fresh ? '<span class="font-bold bg-bahama-gold text-slate-950 px-1.5 py-0.5 rounded">NEW</span>' : ''}
+              ${m.priority ? '<span class="font-bold text-rose-500"><i class="fa-solid fa-triangle-exclamation me-0.5"></i>Priority</span>' : ''}
+              <span class="ms-auto">${sentimentBadge(m.sentiment)}</span>
+            </div>
+            <a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer" class="block mt-1 text-xs font-semibold leading-snug hover:text-bahama-aqua">${esc(m.title)}</a>
+            ${m.summary && m.summary !== m.title ? `<p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">${esc(m.summary)}</p>` : ''}
+            <div class="flex items-center gap-3 mt-2 text-[11px]">
+              <a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer" class="font-semibold text-slate-500 hover:text-bahama-aqua"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Original</a>
+              ${isSaved ? '<span class="text-emerald-500 font-semibold"><i class="fa-solid fa-check me-1"></i>In library</span>'
+                : `<button onclick="saveMention(${m.id})" class="font-semibold text-bahama-aqua hover:underline"><i class="fa-solid fa-bookmark me-1"></i>Save to library</button>`}
+            </div>
+          </div>
+        </article>`;
+      }).join('');
+    }
+
+    function saveMention(id) {
+      prefillMention = mentions.find((m) => m.id === id) || null;
+      openStoryModal();
+    }
+
     // ---------- Related links ----------
     async function addLink(e, storyId) {
       e.preventDefault();
@@ -393,6 +563,15 @@
       form.storyId.value = s ? s.id : '';
       ['title', 'outlet', 'handle', 'channel', 'sentiment', 'sourceUrl', 'imageUrl', 'imageCaption', 'videoUrl', 'summary', 'body', 'tags']
         .forEach((f) => { if (s) form[f].value = s[f] ?? ''; });
+      if (!s && prefillMention) {
+        const m = prefillMention;
+        form.title.value = m.title; form.outlet.value = m.outlet; form.handle.value = m.author || '';
+        form.channel.value = [...form.channel.options].some((o) => o.value === m.channel) ? m.channel : 'Other';
+        form.sentiment.value = m.sentiment; form.sourceUrl.value = m.url; form.imageUrl.value = m.imageUrl || '';
+        form.summary.value = m.summary || ''; form.tags.value = m.topics || '';
+        if (m.channel === 'YouTube') form.videoUrl.value = m.url;
+        prefillMention = null;
+      }
       document.querySelector('#storyModalTitle span').textContent = s ? 'Edit Story' : 'Log New Story';
       document.getElementById('deleteStoryBtn').classList.toggle('hidden', !s);
       const m = document.getElementById('storyModal');
@@ -418,8 +597,10 @@
         } else {
           stories.unshift(saved);
         }
+        storiesSig = '';
         closeStoryModal();
         render();
+        renderLive();
         toast(id ? 'Story updated' : 'Story logged');
         location.hash = saved.slug;
         focusHash();
