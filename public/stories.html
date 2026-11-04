@@ -66,6 +66,20 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
 
+    <!-- PHOTO BANNER -->
+    <section class="relative overflow-hidden rounded-2xl shadow-lg min-h-[230px] sm:min-h-[270px] flex items-end isolate mb-6">
+      <img src="/assets/img/hero-stories.webp" alt="" class="absolute inset-0 w-full h-full object-cover -z-20" fetchpriority="high">
+      <div class="absolute inset-0 bg-gradient-to-r from-bahama-navy/95 via-bahama-navy/70 to-bahama-navy/10 -z-10"></div>
+      <svg class="absolute left-0 top-0 h-full w-20 sm:w-28 -z-10" viewBox="0 0 100 200" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,0 100,100 0,200" fill="#0B192C" opacity=".9"/></svg>
+      <div class="absolute inset-x-0 bottom-0 h-1.5 flex" aria-hidden="true"><span class="flex-1 bg-bahama-aqualight"></span><span class="flex-1 bg-bahama-gold"></span><span class="flex-1 bg-bahama-aqualight"></span></div>
+      <div class="relative p-6 sm:p-8 sm:ps-14 max-w-2xl text-white">
+        <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-bahama-gold flex items-center gap-2"><span class="w-6 h-0.5 bg-bahama-gold"></span>Stories &amp; Media</p>
+        <h2 class="text-2xl sm:text-3xl font-extrabold mt-2 leading-tight drop-shadow">The full story behind every headline.</h2>
+        <p class="text-sm text-slate-200 mt-2 leading-relaxed">Read monitored coverage in full with photos, video and original sources — and build the Ministry&rsquo;s library of record with related links from the team.</p>
+        <div class="flex flex-wrap gap-2 mt-4 text-[11px] font-semibold"><span class="bg-white/10 backdrop-blur border border-white/20 px-2.5 py-1 rounded-full"><i class="fa-solid fa-tower-broadcast text-bahama-gold me-1"></i>Live coverage</span><span class="bg-white/10 backdrop-blur border border-white/20 px-2.5 py-1 rounded-full"><i class="fa-solid fa-photo-film text-bahama-gold me-1"></i>Photos &amp; video</span><span class="bg-white/10 backdrop-blur border border-white/20 px-2.5 py-1 rounded-full"><i class="fa-solid fa-link text-bahama-gold me-1"></i>Source links</span></div>
+      </div>
+    </section>
+
     <!-- Intro + filters -->
     <section class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 mb-6">
       <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
@@ -306,7 +320,12 @@
             <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
             <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-expand me-1"></i> View full photo</span>
             ${s.imageCaption ? `<figcaption class="absolute bottom-3 left-4 right-4 text-[11px] text-white/90">${esc(s.imageCaption)}</figcaption>` : ''}
-          </figure>` : ''}
+          </figure>` : `
+          <div class="relative h-28 sm:h-36 overflow-hidden" aria-hidden="true">
+            <img src="${MOEST.topicPhoto(s.title + ' ' + (s.tags || '') + ' ' + (s.summary || ''), s.id)}" alt="" loading="lazy" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-white dark:from-slate-900 via-white/20 dark:via-slate-900/30 to-transparent"></div>
+            <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded"><i class="fa-regular fa-image me-1"></i>Illustrative photo</span>
+          </div>`}
 
         <div class="p-5 sm:p-7 space-y-5">
           <!-- Meta -->
@@ -485,7 +504,7 @@
         const isSaved = saved.has(m.url);
         return `
         <article class="flex gap-3 p-3 rounded-xl border ${m.priority ? 'border-rose-500/50' : fresh ? 'border-bahama-gold/70' : 'border-slate-200 dark:border-slate-800'} bg-slate-50 dark:bg-slate-800/40">
-          ${m.imageUrl ? `<img src="${esc(m.imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" class="w-20 h-20 object-cover rounded-lg shrink-0" onerror="this.remove()">` : ''}
+          ${MOEST.storyThumb(m.imageUrl, m.title + ' ' + (m.summary || ''), 'w-20 h-20 object-cover rounded-lg shrink-0', m.id)}
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap text-[10px] text-slate-400">
               <i class="${ICONS[m.channel] || ICONS.Other}"></i>

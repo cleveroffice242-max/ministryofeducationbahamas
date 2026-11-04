@@ -210,8 +210,45 @@
 
   const fileSlug = (s) => String(s || 'document').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'document';
 
+
+  // ---------- Photography ----------
+  // Original illustrative photos bundled with the site. Used for page banners
+  // and as topic-matched thumbnails when a story has no photo of its own.
+  const IMG = '/assets/img/';
+  const TOPIC_PHOTOS = [
+    [/graduat|scholarship|award|commencement|valedictor/i, 'graduation'],
+    [/universit|\bub\b|college|btvi|tertiary|higher ed|campus/i, 'university'],
+    [/robot|stem|science|coding|engineer|lab\b|math/i, 'stem'],
+    [/laptop|tablet|digital|internet|online|technolog|device|wifi|computer/i, 'technology'],
+    [/read|literacy|library|book|primary|preschool|early childhood|kindergarten/i, 'reading'],
+    [/sport|athlet|track|carifta|football|basketball|game|swim/i, 'sports'],
+    [/family island|andros|abaco|exuma|eleuthera|inagua|bimini|cat island|long island|acklins|crooked|mayaguana|berry|ragged/i, 'family-island'],
+    [/press|minister|statement|conference|parliament|budget|announce/i, 'hero-stories'],
+    [/zns|broadcast|tv\b|television|radio|youtube|video|interview|podcast/i, 'newsroom'],
+    [/teacher|classroom|bjc|bgcse|exam|student|curricul|school/i, 'classroom'],
+  ];
+  const ROTATION = ['classroom', 'reading', 'stem', 'university', 'family-island', 'technology', 'graduation', 'sports'];
+
+  function topicPhoto(text = '', seed = 0) {
+    const t = String(text);
+    for (const [re, name] of TOPIC_PHOTOS) if (re.test(t)) return `${IMG}${name}.webp`;
+    const n = Math.abs(Number(seed) || [...t].reduce((a, c) => a + c.charCodeAt(0), 0));
+    return `${IMG}${ROTATION[n % ROTATION.length]}.webp`;
+  }
+
+  // <img> for a story: its own photo when present (falling back to a topic photo
+  // if that fails to load), otherwise a topic photo.
+  function storyThumb(url, text, cls, seed) {
+    const fb = topicPhoto(text, seed);
+    const src = url || fb;
+    return `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" class="${cls}"
+      onerror="if(this.dataset.fb){this.remove()}else{this.dataset.fb=1;this.src='${fb}'}">`;
+  }
+
+
   window.MOEST = {
     esc, api, toast, timeAgo, fmtDate, CHANNEL_ICONS, sentimentBadge, paragraphs, hostOf, videoEmbed,
     nodeToBlob, appendNodeToPdf, downloadBlob, shareBlob, fileSlug,
+    topicPhoto, storyThumb,
   };
 })();
