@@ -69,10 +69,7 @@
     </span>
     <div class="ticker-wrap flex-1">
       <div class="ticker-move text-xs flex gap-8" id="tickerContent">
-        <a href="/stories.html#breakfast-program-expansion" class="hover:text-bahama-gold transition"><b>ZNS News:</b> MOEST announces expansion of National Breakfast Program to 8 additional Family Island primary schools.</a>
-        <a href="/stories.html#but-consultative-meeting" class="hover:text-bahama-gold transition"><b>The Tribune:</b> Bahamas Union of Teachers holds quarterly consultative meeting regarding teacher placement.</a>
-        <a href="/stories.html#bgcse-bjc-stem-registration" class="hover:text-bahama-gold transition"><b>Nassau Guardian:</b> BGCSE & BJC 2026 Examination registration records 5% increase in STEM subject enrollment.</a>
-        <a href="/stories.html#gov-high-ac-repairs" class="hover:text-bahama-gold transition"><b>Bahamas Press:</b> AC upgrades underway across New Providence secondary institutions ahead of summer terms.</a>
+        <span class="text-slate-400">Connecting to live media monitor…</span>
       </div>
     </div>
   </div>
@@ -96,9 +93,12 @@
 
       <!-- Controls & Actions -->
       <div class="flex items-center space-x-3">
-        <button onclick="simulateNewPost()" class="hidden sm:flex items-center space-x-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
-          <i class="fa-solid fa-arrows-rotate animate-spin-hover"></i>
-          <span>Simulate Mention</span>
+        <span id="liveStatus" class="hidden lg:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400" aria-live="polite">
+          <i class="fa-solid fa-circle text-[7px] text-slate-400"></i> Connecting…
+        </span>
+        <button id="checkNowBtn" onclick="checkNow()" class="hidden sm:flex items-center space-x-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          <span>Check Now</span>
         </button>
         
         <button onclick="exportBriefing()" class="hidden md:flex items-center space-x-2 bg-bahama-gold text-slate-950 hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
@@ -127,39 +127,35 @@
         <div class="flex justify-between items-start">
           <div>
             <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Mentions (24h)</p>
-            <h3 class="text-2xl font-bold mt-1" id="statVolume">1,482</h3>
+            <h3 class="text-2xl font-bold mt-1" id="statVolume">–</h3>
           </div>
           <div class="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
             <i class="fa-solid fa-bullhorn text-lg"></i>
           </div>
         </div>
-        <div class="mt-3 flex items-center text-xs text-emerald-500 font-semibold">
-          <i class="fa-solid fa-arrow-trend-up me-1"></i> +18.4% <span class="text-slate-400 font-normal me-1 ms-1">vs yesterday</span>
-        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400 font-semibold" id="statVolumeDelta">&nbsp;</div>
       </div>
 
       <!-- Net Sentiment Index -->
       <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Net Sentiment Score</p>
-            <h3 class="text-2xl font-bold text-emerald-500 mt-1" id="statSentimentScore">+54%</h3>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Net Sentiment (7 days)</p>
+            <h3 class="text-2xl font-bold mt-1" id="statSentimentScore">–</h3>
           </div>
           <div class="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
             <i class="fa-solid fa-face-smile text-lg"></i>
           </div>
         </div>
-        <div class="mt-3 flex items-center text-xs text-slate-400">
-          <span class="text-emerald-500 font-bold me-1">68% Pos</span> • <span class="text-slate-400 me-1">18% Neu</span> • <span class="text-rose-500 font-bold me-1">14% Neg</span>
-        </div>
+        <div class="mt-3 flex items-center text-xs text-slate-400" id="statSentimentBreakdown">&nbsp;</div>
       </div>
 
       <!-- High Priority Alerts -->
       <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Action Items / Alerts</p>
-            <h3 class="text-2xl font-bold text-rose-500 mt-1" id="statAlerts">3 Priority</h3>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Priority Alerts (48h)</p>
+            <h3 class="text-2xl font-bold text-rose-500 mt-1" id="statAlerts">–</h3>
           </div>
           <div class="p-2 bg-rose-500/10 text-rose-500 rounded-lg">
             <i class="fa-solid fa-triangle-exclamation text-lg animate-pulse"></i>
@@ -174,15 +170,15 @@
       <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
         <div class="flex justify-between items-start">
           <div>
-            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Estimated Audience Reach</p>
-            <h3 class="text-2xl font-bold mt-1" id="statReach">245.8K</h3>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Outlets Covering (7 days)</p>
+            <h3 class="text-2xl font-bold mt-1" id="statReach">–</h3>
           </div>
           <div class="p-2 bg-bahama-aqua/10 text-bahama-aqua rounded-lg">
             <i class="fa-solid fa-users text-lg"></i>
           </div>
         </div>
         <div class="mt-3 flex items-center text-xs text-slate-400">
-          <i class="fa-solid fa-globe me-1 text-bahama-aqua"></i> Across Bahamian Outlets & Social
+          <i class="fa-solid fa-satellite-dish me-1 text-bahama-aqua"></i> <span id="statSources">Checking sources…</span>
         </div>
       </div>
 
@@ -222,9 +218,9 @@
         <div class="flex items-center justify-between mb-4">
           <div>
             <h2 class="text-base font-bold">Media Volume & Sentiment Velocity (7-Day)</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Daily breakdown of media coverage and citizen reactions</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Education-related stories per day, by sentiment</p>
           </div>
-          <span class="text-xs bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md text-slate-500 font-medium">Real-Time Sync</span>
+          <span class="text-xs bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md text-slate-500 font-medium" id="chartSync">Live</span>
         </div>
         <div class="h-64">
           <canvas id="velocityChart"></canvas>
@@ -243,15 +239,15 @@
         
         <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 grid grid-cols-3 text-center text-xs">
           <div>
-            <span class="block font-bold text-emerald-500 text-sm">68%</span>
+            <span class="block font-bold text-emerald-500 text-sm" id="pctPos">–</span>
             <span class="text-slate-500">Positive</span>
           </div>
           <div>
-            <span class="block font-bold text-slate-400 text-sm">18%</span>
+            <span class="block font-bold text-slate-400 text-sm" id="pctNeu">–</span>
             <span class="text-slate-500">Neutral</span>
           </div>
           <div>
-            <span class="block font-bold text-rose-500 text-sm">14%</span>
+            <span class="block font-bold text-rose-500 text-sm" id="pctNeg">–</span>
             <span class="text-slate-500">Negative</span>
           </div>
         </div>
@@ -264,83 +260,13 @@
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-base font-bold">Island & District Operational Sentiment</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Localized news & public sentiment across Family Islands and New Providence</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Education coverage mentioning each island over the last 7 days, and the share that is positive</p>
         </div>
-        <span class="text-xs text-bahama-aqua font-semibold">14 Active Districts</span>
+        <span class="text-xs text-bahama-aqua font-semibold" id="islandCount"></span>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <!-- New Providence -->
-        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-          <div class="flex justify-between items-center text-xs font-bold mb-1">
-            <span>New Providence</span>
-            <span class="text-emerald-500">72% +</span>
-          </div>
-          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
-            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 72%"></div>
-          </div>
-          <p class="text-[10px] text-slate-500">Focus: Breakfast Program & BHSD targets</p>
-        </div>
-
-        <!-- Grand Bahama -->
-        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-          <div class="flex justify-between items-center text-xs font-bold mb-1">
-            <span>Grand Bahama</span>
-            <span class="text-emerald-500">81% +</span>
-          </div>
-          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
-            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 81%"></div>
-          </div>
-          <p class="text-[10px] text-slate-500">Focus: STEM Labs & TVET Expansion</p>
-        </div>
-
-        <!-- Abaco -->
-        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-          <div class="flex justify-between items-center text-xs font-bold mb-1">
-            <span>Abaco</span>
-            <span class="text-emerald-500">65% +</span>
-          </div>
-          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
-            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 65%"></div>
-          </div>
-          <p class="text-[10px] text-slate-500">Focus: School rebuilding completion</p>
-        </div>
-
-        <!-- Eleuthera -->
-        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-          <div class="flex justify-between items-center text-xs font-bold mb-1">
-            <span>Eleuthera</span>
-            <span class="text-amber-500">58% +</span>
-          </div>
-          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
-            <div class="bg-amber-500 h-1.5 rounded-full" style="width: 58%"></div>
-          </div>
-          <p class="text-[10px] text-slate-500">Focus: Teacher accommodation support</p>
-        </div>
-
-        <!-- Exuma & Cays -->
-        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-          <div class="flex justify-between items-center text-xs font-bold mb-1">
-            <span>Exuma & Cays</span>
-            <span class="text-emerald-500">79% +</span>
-          </div>
-          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
-            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 79%"></div>
-          </div>
-          <p class="text-[10px] text-slate-500">Focus: BTVI satellite course additions</p>
-        </div>
-
-        <!-- Southern Family Islands -->
-        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-          <div class="flex justify-between items-center text-xs font-bold mb-1">
-            <span>Southern Islands</span>
-            <span class="text-emerald-500">88% +</span>
-          </div>
-          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
-            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 88%"></div>
-          </div>
-          <p class="text-[10px] text-slate-500">Focus: Distance learning technology</p>
-        </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="islandGrid">
+        <p class="col-span-full text-xs text-slate-400">Loading island coverage…</p>
       </div>
     </section>
 
@@ -360,9 +286,8 @@
         <div class="flex items-center space-x-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
           <button onclick="setSourceFilter('ALL')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-bahama-aqua text-white shadow-sm transition" data-source="ALL">All Sources</button>
           <button onclick="setSourceFilter('News')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="News">News Outlets</button>
-          <button onclick="setSourceFilter('Facebook')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="Facebook">Facebook</button>
-          <button onclick="setSourceFilter('X')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="X">X (Twitter)</button>
-          <button onclick="setSourceFilter('Instagram')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="Instagram">Instagram</button>
+          <button onclick="setSourceFilter('YouTube')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="YouTube">YouTube</button>
+          <button onclick="setSourceFilter('Reddit')" class="source-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" data-source="Reddit">Reddit</button>
         </div>
 
         <!-- Sentiment Filter Dropdown -->
@@ -381,12 +306,7 @@
       <!-- Topic Hashtags Pills -->
       <div class="flex flex-wrap gap-2 items-center">
         <span class="text-xs font-bold text-slate-500 uppercase tracking-wider me-1">Trending Topics:</span>
-        <button onclick="filterHashtag('#SchoolBreakfast')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition">#SchoolBreakfast</button>
-        <button onclick="filterHashtag('#STEMBahamas')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition">#STEMBahamas</button>
-        <button onclick="filterHashtag('#SchoolACRepairs')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition">#SchoolACRepairs</button>
-        <button onclick="filterHashtag('#BGCSE2026')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition">#BGCSE2026</button>
-        <button onclick="filterHashtag('#BUT_Union')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition">#BUT_Union</button>
-        <button onclick="filterHashtag('#BHSD')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-bahama-aqua/10 text-bahama-aqua border border-bahama-aqua/20 hover:bg-bahama-aqua/20 transition">#BHSD</button>
+        <span id="topicPills" class="contents"><span class="text-xs text-slate-400">Loading…</span></span>
         <button onclick="clearHashtagFilter()" class="text-xs text-slate-400 hover:text-slate-600 underline ms-2">Reset Hashtags</button>
       </div>
 
@@ -406,7 +326,7 @@
       <div class="flex items-center space-x-4">
         <span>Communications Section Intelligence Unit</span>
         <span>•</span>
-        <span class="text-emerald-500 font-medium"><i class="fa-solid fa-circle text-[8px] me-1"></i> Live Media Stream Active</span>
+        <span class="text-slate-400 font-medium" id="footerStatus"><i class="fa-solid fa-circle text-[8px] me-1"></i> Connecting to media monitor…</span>
       </div>
     </div>
   </footer>
@@ -471,114 +391,242 @@
 
   <!-- JAVASCRIPT APP LOGIC -->
   <script>
-    // INITIAL MOCK DATA FEED FOR MOEST BAHAMAS
-    const initialPosts = [
-      {
-        id: 1,
-        story: "breakfast-program-expansion",
-        author: "ZNS Bahamas",
-        handle: "@ZNSBahamas",
-        source: "News",
-        icon: "fa-newspaper",
-        time: "12 mins ago",
-        content: "Minister of Education announces full rollout of the National Primary School Breakfast Program across 8 additional Family Island primary schools, serving over 14,350 daily hot meals. #SchoolBreakfast #MOESTBahamas #FamilyIslands",
-        sentiment: "POSITIVE",
-        reach: "38.5K",
-        likes: 412,
-        shares: 89,
-        priority: false
-      },
-      {
-        id: 2,
-        story: "gov-high-ac-repairs",
-        author: "Bahamas Press",
-        handle: "@BahamasPress",
-        source: "Facebook",
-        icon: "fa-facebook",
-        time: "35 mins ago",
-        content: "Parents express frustration over cooling system repairs at Government High School during afternoon heat. MOEST maintenance teams dispatched to replace compressor units. #SchoolACRepairs #NewProvidence",
-        sentiment: "NEGATIVE",
-        reach: "24.1K",
-        likes: 189,
-        shares: 114,
-        priority: true
-      },
-      {
-        id: 3,
-        story: "bgcse-bjc-stem-registration",
-        author: "The Tribune 242",
-        handle: "@Tribune242",
-        source: "News",
-        icon: "fa-newspaper",
-        time: "1 hour ago",
-        content: "BGCSE and BJC national examination registration hits record high in STEM subjects. Examination Assessment Division confirms all centers prepared across Grand Bahama and New Providence. #BGCSE2026 #BahamasEducation",
-        sentiment: "POSITIVE",
-        reach: "19.8K",
-        likes: 276,
-        shares: 45,
-        priority: false
-      },
-      {
-        id: 4,
-        story: "but-consultative-meeting",
-        author: "Bahamas Union of Teachers (BUT)",
-        handle: "@BUT_Official",
-        source: "X",
-        icon: "fa-x-twitter",
-        time: "2 hours ago",
-        content: "Constructive consultative meeting held with MOEST executive team regarding specialized teacher stipends and Family Island housing allowances for 2026/2027 academic year. #BUT_Union #TeacherSupport",
-        sentiment: "NEUTRAL",
-        reach: "12.4K",
-        likes: 95,
-        shares: 23,
-        priority: false
-      },
-      {
-        id: 5,
-        story: "bhsd-graduation-rate",
-        author: "Nassau Guardian",
-        handle: "@NassauGuardian",
-        source: "News",
-        icon: "fa-newspaper",
-        time: "3 hours ago",
-        content: "Bahamas High School Diploma (BHSD) national graduation rate tracks upward toward 59.4%, advancing steady progress toward national target of 85% by 2030. #BHSD #BahamasEducation #MOEST",
-        sentiment: "POSITIVE",
-        reach: "31.0K",
-        likes: 380,
-        shares: 92,
-        priority: false
-      },
-      {
-        id: 6,
-        story: "btvi-exuma-upgrades",
-        author: "Parent Teacher Voice Exuma",
-        handle: "@ExumaParents",
-        source: "Instagram",
-        icon: "fa-instagram",
-        time: "4 hours ago",
-        content: "Great seeing the BTVI extension campus facilities being upgraded in George Town! Good opportunities for high school graduates staying on island. #STEMBahamas #Exuma #MOESTBahamas",
-        sentiment: "POSITIVE",
-        reach: "8.7K",
-        likes: 154,
-        shares: 18,
-        priority: false
-      }
+    // Live data from the media monitor (checks news & social sources every minute)
+    const POLL_MS = 30_000;
+    const CHANNEL_ICON = { News: 'fa-newspaper', YouTube: 'fa-brands fa-youtube', Reddit: 'fa-brands fa-reddit-alien', Facebook: 'fa-brands fa-facebook', X: 'fa-brands fa-x-twitter', Instagram: 'fa-brands fa-instagram' };
+    const ISLANDS = [
+      { name: 'New Providence', re: /new providence|nassau/i },
+      { name: 'Grand Bahama', re: /grand bahama|freeport|\bGB\b/ },
+      { name: 'Abaco', re: /abaco|marsh harbour/i },
+      { name: 'Eleuthera & Harbour Is.', re: /eleuthera|harbour island/i },
+      { name: 'Exuma', re: /exuma/i },
+      { name: 'Andros', re: /andros/i },
+      { name: 'Long Island', re: /long island/i },
+      { name: 'Bimini & Berry Is.', re: /bimini|berry islands/i },
+      { name: 'Cat Island', re: /cat island/i },
+      { name: 'Inagua & South', re: /inagua|mayaguana|acklins|crooked island|ragged island|san salvador|rum cay/i },
     ];
 
-    let postsData = [...initialPosts];
+    let postsData = [];
+    let monitorState = { lastCheckedAt: null, sources: [] };
+    let knownIds = null;
     let currentSourceFilter = 'ALL';
-    let currentSentimentFilter = 'ALL';
     let currentHashtagFilter = null;
     let selectedPostForResponse = null;
-
-    // CHARTS INITIALIZATION
     let velocityChart, sentimentDoughnut;
 
     document.addEventListener("DOMContentLoaded", () => {
       initCharts();
-      renderFeed();
+      loadMentions();
       loadQuickStats();
+      setInterval(loadMentions, POLL_MS);
+      setInterval(loadQuickStats, POLL_MS * 2);
+      setInterval(renderStatus, 5000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) loadMentions(); });
     });
+
+    const toPost = (m) => ({
+      id: m.id,
+      story: null,
+      author: m.outlet,
+      handle: m.author || '',
+      source: m.channel,
+      icon: CHANNEL_ICON[m.channel] || 'fa-globe',
+      publishedAt: m.publishedAt,
+      title: m.title,
+      content: m.summary && m.summary !== m.title ? `${m.title} — ${m.summary}` : m.title,
+      summary: m.summary,
+      url: m.url,
+      imageUrl: m.imageUrl,
+      sentiment: m.sentiment,
+      priority: m.priority,
+      topics: (m.topics || '').split(/\s+/).filter(Boolean),
+      fresh: false,
+    });
+
+    async function loadMentions() {
+      try {
+        const data = await MOEST.api('/api/mentions');
+        monitorState = { lastCheckedAt: data.lastCheckedAt, sources: data.sources, error: null };
+        const posts = data.mentions.map(toPost);
+        if (knownIds) {
+          const fresh = posts.filter(p => !knownIds.has(p.id));
+          fresh.forEach(p => { p.fresh = true; });
+          if (fresh.length) MOEST.toast(`${fresh.length} new media mention${fresh.length > 1 ? 's' : ''} detected`);
+          // keep the "new" highlight on items flagged in earlier polls
+          const prevFresh = new Set(postsData.filter(p => p.fresh).map(p => p.id));
+          posts.forEach(p => { if (prevFresh.has(p.id)) p.fresh = true; });
+        }
+        knownIds = new Set(posts.map(p => p.id));
+        postsData = posts;
+        renderAll();
+        // First visit before the scheduler has ever run: trigger a check
+        if (!data.lastCheckedAt) checkNow(true);
+      } catch (e) {
+        monitorState.error = e.message;
+      }
+      renderStatus();
+    }
+
+    async function checkNow(silent) {
+      const btn = document.getElementById('checkNowBtn');
+      btn.disabled = true;
+      btn.querySelector('i').classList.add('fa-spin');
+      try {
+        const r = await MOEST.api('/api/mentions/refresh', { method: 'POST' });
+        if (!silent) MOEST.toast(r.skipped ? 'Sources were checked moments ago — showing latest' : `Checked all sources: ${r.inserted} new mention${r.inserted === 1 ? '' : 's'}`);
+        await loadMentions();
+      } catch (e) {
+        if (!silent) MOEST.toast(e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.querySelector('i').classList.remove('fa-spin');
+      }
+    }
+
+    function agoShort(date) {
+      const s = Math.max(0, Math.round((Date.now() - new Date(date).getTime()) / 1000));
+      if (s < 60) return `${s}s ago`;
+      if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+      return MOEST.timeAgo(date);
+    }
+
+    function renderStatus() {
+      const el = document.getElementById('liveStatus');
+      const foot = document.getElementById('footerStatus');
+      const last = monitorState.lastCheckedAt;
+      const stale = !last || Date.now() - new Date(last).getTime() > 5 * 60_000;
+      const ok = monitorState.sources.filter(s => !s.lastError).length;
+      const total = monitorState.sources.length;
+      let dot, text;
+      if (monitorState.error) { dot = 'text-rose-500'; text = 'Monitor unreachable — retrying'; }
+      else if (!last) { dot = 'text-slate-400'; text = 'Waiting for first check…'; }
+      else { dot = stale ? 'text-amber-500' : 'text-emerald-500 animate-pulse'; text = `Sources checked ${agoShort(last)}`; }
+      el.innerHTML = `<i class="fa-solid fa-circle text-[7px] ${dot}"></i> ${text}`;
+      foot.className = `${dot.replace(' animate-pulse', '')} font-medium`;
+      foot.innerHTML = `<i class="fa-solid fa-circle text-[8px] me-1"></i> ${text}${total ? ` · ${ok}/${total} sources online` : ''}`;
+      document.getElementById('statSources').textContent = total ? `${ok} of ${total} sources online` : 'Checking sources…';
+      document.getElementById('statSources').title = monitorState.sources.map(s => `${s.name}: ${s.lastError ? 'error – ' + s.lastError : 'OK'}`).join('\n');
+    }
+
+    function renderAll() {
+      renderStats();
+      renderCharts();
+      renderIslands();
+      renderTopics();
+      renderTicker();
+      renderFeed();
+    }
+
+    const within = (p, ms, offset = 0) => {
+      const age = Date.now() - new Date(p.publishedAt).getTime();
+      return age >= offset && age < offset + ms;
+    };
+    const pct = (n, d) => (d ? Math.round((n / d) * 100) : 0);
+
+    function renderStats() {
+      const day = 24 * 3600_000;
+      const today = postsData.filter(p => within(p, day)).length;
+      const yesterday = postsData.filter(p => within(p, day, day)).length;
+      document.getElementById('statVolume').textContent = today.toLocaleString();
+      const delta = document.getElementById('statVolumeDelta');
+      if (yesterday) {
+        const ch = Math.round(((today - yesterday) / yesterday) * 100);
+        delta.className = `mt-3 flex items-center text-xs font-semibold ${ch >= 0 ? 'text-emerald-500' : 'text-rose-500'}`;
+        delta.innerHTML = `<i class="fa-solid fa-arrow-trend-${ch >= 0 ? 'up' : 'down'} me-1"></i> ${ch >= 0 ? '+' : ''}${ch}% <span class="text-slate-400 font-normal ms-1">vs previous 24h (${yesterday})</span>`;
+      } else {
+        delta.className = 'mt-3 flex items-center text-xs text-slate-400';
+        delta.textContent = `${postsData.length} education stories this week`;
+      }
+
+      const n = postsData.length;
+      const pos = postsData.filter(p => p.sentiment === 'POSITIVE').length;
+      const neg = postsData.filter(p => p.sentiment === 'NEGATIVE').length;
+      const neu = n - pos - neg;
+      const net = pct(pos - neg, n);
+      const score = document.getElementById('statSentimentScore');
+      score.textContent = n ? `${net > 0 ? '+' : ''}${net}%` : '–';
+      score.className = `text-2xl font-bold mt-1 ${net > 0 ? 'text-emerald-500' : net < 0 ? 'text-rose-500' : 'text-slate-400'}`;
+      document.getElementById('statSentimentBreakdown').innerHTML = n
+        ? `<span class="text-emerald-500 font-bold me-1">${pct(pos, n)}% Pos</span> • <span class="text-slate-400 mx-1">${pct(neu, n)}% Neu</span> • <span class="text-rose-500 font-bold ms-1">${pct(neg, n)}% Neg</span>`
+        : 'No coverage yet';
+      document.getElementById('pctPos').textContent = `${pct(pos, n)}%`;
+      document.getElementById('pctNeu').textContent = `${pct(neu, n)}%`;
+      document.getElementById('pctNeg').textContent = `${pct(neg, n)}%`;
+
+      const alerts = postsData.filter(p => p.priority && within(p, 2 * day)).length;
+      document.getElementById('statAlerts').textContent = `${alerts} Priority`;
+      document.getElementById('statReach').textContent = new Set(postsData.map(p => p.author)).size;
+    }
+
+    function renderCharts() {
+      const days = [...Array(7)].map((_, i) => {
+        const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (6 - i)); return d;
+      });
+      const count = (sent) => days.map(d => postsData.filter(p => {
+        const t = new Date(p.publishedAt); return t >= d && t < new Date(d.getTime() + 86400_000) && p.sentiment === sent;
+      }).length);
+      velocityChart.data.labels = days.map(d => d.toLocaleDateString('en-BS', { weekday: 'short', day: 'numeric' }));
+      velocityChart.data.datasets[0].data = count('POSITIVE');
+      velocityChart.data.datasets[1].data = count('NEGATIVE');
+      velocityChart.data.datasets[2].data = count('NEUTRAL');
+      velocityChart.update('none');
+      const by = (s) => postsData.filter(p => p.sentiment === s).length;
+      sentimentDoughnut.data.datasets[0].data = [by('POSITIVE'), by('NEUTRAL'), by('NEGATIVE')];
+      sentimentDoughnut.update('none');
+      document.getElementById('chartSync').innerHTML = `<i class="fa-solid fa-circle text-[7px] text-emerald-500 me-1"></i>Live`;
+    }
+
+    function renderIslands() {
+      const grid = document.getElementById('islandGrid');
+      const rows = ISLANDS.map(isl => {
+        const hits = postsData.filter(p => isl.re.test(`${p.title} ${p.summary}`));
+        const pos = hits.filter(p => p.sentiment === 'POSITIVE').length;
+        const neg = hits.filter(p => p.sentiment === 'NEGATIVE').length;
+        return { ...isl, hits, pos, neg };
+      }).filter(r => r.hits.length).sort((a, b) => b.hits.length - a.hits.length);
+      document.getElementById('islandCount').textContent = `${rows.length} island${rows.length === 1 ? '' : 's'} in the news`;
+      if (!rows.length) {
+        grid.innerHTML = '<p class="col-span-full text-xs text-slate-400">No island-specific education coverage in the last 7 days.</p>';
+        return;
+      }
+      grid.innerHTML = rows.slice(0, 12).map(r => {
+        const share = pct(r.pos, r.hits.length);
+        const color = r.neg > r.pos ? 'rose' : share >= 50 ? 'emerald' : 'amber';
+        return `
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+          <div class="flex justify-between items-center text-xs font-bold mb-1 gap-2">
+            <span class="truncate">${MOEST.esc(r.name)}</span>
+            <span class="text-${color}-500 shrink-0">${share}% +</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mb-2">
+            <div class="bg-${color}-500 h-1.5 rounded-full" style="width:${Math.max(share, 3)}%"></div>
+          </div>
+          <p class="text-[10px] text-slate-500">${r.hits.length} stor${r.hits.length === 1 ? 'y' : 'ies'}${r.neg ? ` · ${r.neg} negative` : ''}</p>
+          <p class="text-[10px] text-slate-500 truncate" title="${MOEST.esc(r.hits[0].title)}">Latest: ${MOEST.esc(r.hits[0].title)}</p>
+        </div>`;
+      }).join('');
+    }
+
+    function renderTopics() {
+      const counts = {};
+      postsData.forEach(p => p.topics.forEach(t => { counts[t] = (counts[t] || 0) + 1; }));
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      const palette = ['emerald', 'blue', 'rose', 'purple', 'amber', 'cyan', 'indigo', 'teal'];
+      document.getElementById('topicPills').innerHTML = top.length ? top.map(([t, n], i) => {
+        const c = palette[i % palette.length];
+        const active = currentHashtagFilter === t ? ' ring-2 ring-offset-1 ring-bahama-aqua' : '';
+        return `<button onclick="filterHashtag('${MOEST.esc(t)}')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-${c}-500/10 text-${c}-600 dark:text-${c}-400 border border-${c}-500/20 hover:bg-${c}-500/20 transition${active}">${MOEST.esc(t)} <span class="opacity-60">${n}</span></button>`;
+      }).join('') : '<span class="text-xs text-slate-400">Topics appear as coverage is analysed.</span>';
+    }
+
+    function renderTicker() {
+      const latest = postsData.slice(0, 10);
+      const ticker = document.getElementById('tickerContent');
+      ticker.innerHTML = latest.length ? latest.map(p =>
+        `<a href="${MOEST.esc(p.url)}" target="_blank" rel="noopener noreferrer" class="hover:text-bahama-gold transition"><b>${p.fresh ? '<span class="text-bahama-gold">JUST IN · </span>' : ''}${MOEST.esc(p.author)}:</b> ${MOEST.esc(p.title)} <span class="text-slate-500">(${agoShort(p.publishedAt)})</span></a>`
+      ).join('') : '<span class="text-slate-400">No education coverage detected in the last 7 days yet.</span>';
+    }
 
     // Live counts for the Stories & Ministry Data quick-access cards
     let storyIdsBySlug = {};
@@ -603,17 +651,18 @@
       const btn = document.getElementById('saveResponseBtn');
       btn.disabled = true;
       const templateLabel = document.getElementById('templateSelect').selectedOptions[0].text;
+      const p = selectedPostForResponse;
       try {
         const record = await MOEST.api('/api/records', {
           method: 'POST',
           body: {
             kind: 'Response',
             status: 'Draft',
-            title: `${templateLabel}: ${selectedPostForResponse.author}`,
-            body: document.getElementById('responseBody').value,
+            title: `${templateLabel}: ${p.author} – ${p.title}`.slice(0, 300),
+            body: `${document.getElementById('responseBody').value}\n\nSource: ${p.author} – "${p.title}"\n${p.url}`,
             author: localStorage.getItem('moest-user') || 'Communications Section',
             department: 'Communications',
-            storyId: storyIdsBySlug[selectedPostForResponse.story] || null,
+            storyId: storyIdsBySlug[p.story] || null,
           },
         });
         closeModal();
@@ -641,12 +690,14 @@
     }
 
     function filterHashtag(tag) {
-      currentHashtagFilter = tag;
+      currentHashtagFilter = currentHashtagFilter === tag ? null : tag;
+      renderTopics();
       renderFeed();
     }
 
     function clearHashtagFilter() {
       currentHashtagFilter = null;
+      renderTopics();
       renderFeed();
     }
 
@@ -663,9 +714,8 @@
       const filtered = postsData.filter(post => {
         const matchesSource = currentSourceFilter === 'ALL' || post.source === currentSourceFilter;
         const matchesSentiment = sentimentVal === 'ALL' || post.sentiment === sentimentVal;
-        const matchesSearch = post.content.toLowerCase().includes(searchVal) || post.author.toLowerCase().includes(searchVal);
-        const matchesHashtag = !currentHashtagFilter || post.content.includes(currentHashtagFilter);
-
+        const matchesSearch = !searchVal || post.content.toLowerCase().includes(searchVal) || post.author.toLowerCase().includes(searchVal);
+        const matchesHashtag = !currentHashtagFilter || post.topics.includes(currentHashtagFilter);
         return matchesSource && matchesSentiment && matchesSearch && matchesHashtag;
       });
 
@@ -673,69 +723,54 @@
         feedContainer.innerHTML = `
           <div class="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
             <i class="fa-solid fa-folder-open text-3xl mb-2"></i>
-            <p class="text-xs">No media mentions found matching your active filter criteria.</p>
+            <p class="text-xs">${postsData.length ? 'No media mentions found matching your active filter criteria.' : 'Waiting for the media monitor to collect coverage…'}</p>
           </div>
         `;
         return;
       }
 
-      feedContainer.innerHTML = filtered.map(post => {
-        let badgeColor = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-        let sentimentText = "+ Positive";
-        if (post.sentiment === "NEGATIVE") {
-          badgeColor = "bg-rose-500/10 text-rose-500 border-rose-500/20";
-          sentimentText = "- Negative";
-        } else if (post.sentiment === "NEUTRAL") {
-          badgeColor = "bg-slate-500/10 text-slate-400 border-slate-500/20";
-          sentimentText = "= Neutral";
-        }
-
+      feedContainer.innerHTML = filtered.slice(0, 150).map(post => {
+        const esc = MOEST.esc;
+        const icon = post.icon.includes('fa-brands') ? post.icon : `fa-solid ${post.icon}`;
         return `
-          <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border ${post.priority ? 'border-rose-500/50 dark:border-rose-500/40' : 'border-slate-200 dark:border-slate-800'} shadow-sm transition hover:border-bahama-aqua/50">
+          <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border ${post.priority ? 'border-rose-500/50 dark:border-rose-500/40' : post.fresh ? 'border-bahama-gold/60' : 'border-slate-200 dark:border-slate-800'} shadow-sm transition hover:border-bahama-aqua/50">
             <div class="flex items-start justify-between gap-3">
-              
-              <!-- Author & Channel Info -->
-              <div class="flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                  <i class="fa-solid ${post.icon} text-base"></i>
+              <div class="flex items-center space-x-3 min-w-0">
+                <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0">
+                  <i class="${icon} text-base"></i>
                 </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h4 class="text-xs font-bold text-slate-900 dark:text-white">${post.author}</h4>
-                    <span class="text-[11px] text-slate-400">${post.handle}</span>
-                    <span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded">${post.source}</span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h4 class="text-xs font-bold text-slate-900 dark:text-white">${esc(post.author)}</h4>
+                    ${post.handle ? `<span class="text-[11px] text-slate-400">${esc(post.handle)}</span>` : ''}
+                    <span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded">${esc(post.source)}</span>
+                    ${post.fresh ? '<span class="text-[10px] font-bold bg-bahama-gold text-slate-950 px-2 py-0.5 rounded">NEW</span>' : ''}
                   </div>
-                  <span class="text-[10px] text-slate-400"><i class="fa-regular fa-clock me-1"></i>${post.time}</span>
+                  <span class="text-[10px] text-slate-400" title="${esc(MOEST.fmtDate(post.publishedAt))}"><i class="fa-regular fa-clock me-1"></i>${agoShort(post.publishedAt)}</span>
                 </div>
               </div>
-
-              <!-- Sentiment Badge & Alert Indicator -->
-              <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-2 shrink-0">
                 ${post.priority ? `<span class="bg-rose-500/20 text-rose-500 text-[10px] font-bold px-2 py-0.5 rounded border border-rose-500/30 animate-pulse"><i class="fa-solid fa-triangle-exclamation me-1"></i> Priority Alert</span>` : ''}
-                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded border ${badgeColor}">
-                  ${sentimentText}
-                </span>
+                ${MOEST.sentimentBadge(post.sentiment)}
               </div>
-
             </div>
 
-            <!-- Content Body -->
-            <p class="text-xs text-slate-700 dark:text-slate-200 mt-3 leading-relaxed font-sans">
-              ${highlightHashtags(post.content)}
-            </p>
-
-            <!-- Metrics & Response Actions -->
-            <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-              <div class="flex items-center space-x-4">
-                <span><i class="fa-solid fa-eye me-1 text-bahama-aqua"></i> ${post.reach} Reach</span>
-                <span><i class="fa-solid fa-thumbs-up me-1"></i> ${post.likes}</span>
-                <span><i class="fa-solid fa-share me-1"></i> ${post.shares}</span>
+            <div class="mt-3 flex gap-3">
+              <div class="flex-1 min-w-0">
+                <a href="${esc(post.url)}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-slate-900 dark:text-white hover:text-bahama-aqua leading-snug">${esc(post.title)}</a>
+                ${post.summary && post.summary !== post.title ? `<p class="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed line-clamp-3">${esc(post.summary)}</p>` : ''}
               </div>
+              ${post.imageUrl ? `<img src="${esc(post.imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" class="w-24 h-16 object-cover rounded-lg shrink-0 hidden sm:block" onerror="this.remove()">` : ''}
+            </div>
 
+            <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-400 gap-3 flex-wrap">
+              <div class="flex items-center gap-2 flex-wrap">
+                ${post.topics.map(t => `<button onclick="filterHashtag('${esc(t)}')" class="text-bahama-aqua font-semibold hover:underline">${esc(t)}</button>`).join('')}
+              </div>
               <div class="flex items-center gap-4">
-                ${post.story ? `<a href="/stories.html#${post.story}" class="text-slate-500 dark:text-slate-300 hover:text-bahama-aqua text-xs font-bold flex items-center gap-1 transition">
-                  <i class="fa-solid fa-book-open"></i> Read Full Story
-                </a>` : ''}
+                <a href="${esc(post.url)}" target="_blank" rel="noopener noreferrer" class="text-slate-500 dark:text-slate-300 hover:text-bahama-aqua text-xs font-bold flex items-center gap-1 transition">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Original
+                </a>
                 <button onclick="openResponseModal(${post.id})" class="text-bahama-aqua hover:text-bahama-aqualight text-xs font-bold flex items-center gap-1 transition">
                   <i class="fa-solid fa-reply"></i> Draft Official Response
                 </button>
@@ -745,11 +780,6 @@
         `;
       }).join('');
     }
-
-    function highlightHashtags(text) {
-      return text.replace(/#(\w+)/g, '<span class="text-bahama-aqua font-semibold hover:underline cursor-pointer" onclick="filterHashtag(\'#$1\')">#$1</span>');
-    }
-
     // Modal Operations
     function openResponseModal(postId) {
       const post = postsData.find(p => p.id === postId);
@@ -793,39 +823,6 @@
       closeModal();
     }
 
-    // Simulate Fresh Real-time Mention
-    function simulateNewPost() {
-      const sampleTopics = [
-        { story: "digital-literacy-curriculum", author: "ZNS News Nightly", handle: "@ZNSNightly", source: "News", icon: "fa-newspaper", content: "MOEST releases updated curriculum guidelines for digital literacy and coding in primary schools across Abaco and Eleuthera. #STEMBahamas #MOEST", sentiment: "POSITIVE" },
-        { author: "Bahama Voice Online", handle: "@BahamaVoice", source: "X", icon: "fa-x-twitter", content: "Inquiry raised regarding textbook distribution timing for secondary centers in Southern Bahamas. #BahamasEducation", sentiment: "NEGATIVE", priority: true },
-        { author: "Grand Bahama Educator", handle: "@GB_Teacher", source: "Facebook", icon: "fa-facebook", content: "Successful completion of teacher professional development workshop in Freeport! Great energy from all participants. #BUT_Union #GrandBahama", sentiment: "POSITIVE" }
-      ];
-
-      const newMention = sampleTopics[Math.floor(Math.random() * sampleTopics.length)];
-      const newPostObj = {
-        id: Date.now(),
-        story: newMention.story || null,
-        author: newMention.author,
-        handle: newMention.handle,
-        source: newMention.source,
-        icon: newMention.icon,
-        time: "Just now",
-        content: newMention.content,
-        sentiment: newMention.sentiment,
-        reach: (Math.random() * 15 + 5).toFixed(1) + "K",
-        likes: Math.floor(Math.random() * 80 + 10),
-        shares: Math.floor(Math.random() * 20 + 2),
-        priority: newMention.priority || false
-      };
-
-      postsData.unshift(newPostObj);
-      renderFeed();
-
-      // Update Ticker
-      const ticker = document.getElementById('tickerContent');
-      ticker.innerHTML = `<span><b>JUST IN (${newMention.author}):</b> ${newMention.content}</span> ` + ticker.innerHTML;
-    }
-
     // Briefs and other in-house documents are produced from the Ministry Data workspace
     function exportBriefing() {
       location.href = '/ministry-data.html';
@@ -838,11 +835,11 @@
       velocityChart = new Chart(ctxVelocity, {
         type: 'line',
         data: {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          labels: [],
           datasets: [
             {
               label: 'Positive Coverage',
-              data: [180, 210, 290, 340, 310, 420, 480],
+              data: [],
               borderColor: '#10B981',
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
               fill: true,
@@ -850,10 +847,19 @@
             },
             {
               label: 'Negative / Issue Coverage',
-              data: [45, 60, 40, 85, 50, 65, 40],
+              data: [],
               borderColor: '#F43F5E',
               backgroundColor: 'rgba(244, 63, 94, 0.05)',
               fill: true,
+              tension: 0.3
+            },
+            {
+              label: 'Neutral Coverage',
+              data: [],
+              borderColor: '#94A3B8',
+              backgroundColor: 'rgba(148, 163, 184, 0.05)',
+              borderDash: [4, 4],
+              fill: false,
               tension: 0.3
             }
           ]
@@ -868,7 +874,7 @@
           },
           scales: {
             x: { grid: { display: false }, ticks: { color: '#94A3B8' } },
-            y: { grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94A3B8' } }
+            y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94A3B8', precision: 0 } }
           }
         }
       });
@@ -880,7 +886,7 @@
         data: {
           labels: ['Positive', 'Neutral', 'Negative'],
           datasets: [{
-            data: [68, 18, 14],
+            data: [0, 0, 0],
             backgroundColor: ['#10B981', '#94A3B8', '#F43F5E'],
             borderWidth: 0
           }]
