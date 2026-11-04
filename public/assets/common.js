@@ -42,6 +42,7 @@
 
   async function api(path, opts = {}) {
     const res = await fetch(path, {
+      cache: 'no-store',
       ...opts,
       headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
       body: opts.body && typeof opts.body !== 'string' ? JSON.stringify(opts.body) : opts.body,

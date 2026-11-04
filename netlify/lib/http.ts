@@ -1,5 +1,7 @@
-export const json = (data: unknown, status = 200) => Response.json(data, { status });
-export const error = (message: string, status = 400) => Response.json({ error: message }, { status });
+// API data changes constantly, so never let browsers or the CDN cache it.
+const NO_STORE = { "Cache-Control": "no-store, max-age=0", "Netlify-CDN-Cache-Control": "no-store" };
+export const json = (data: unknown, status = 200) => Response.json(data, { status, headers: NO_STORE });
+export const error = (message: string, status = 400) => Response.json({ error: message }, { status, headers: NO_STORE });
 
 export async function readBody(req: Request): Promise<Record<string, unknown>> {
   try {

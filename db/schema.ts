@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, index, boolean } from "drizzle-orm/pg-core";
 
 // Full news & social media stories shown on the Stories page.
 export const stories = pgTable("stories", {
@@ -49,4 +49,39 @@ export const ministryRecords = pgTable("ministry_records", {
   storyId: integer("story_id").references(() => stories.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Live news & social media mentions collected automatically by the media monitor.
+export const mediaMentions = pgTable(
+  "media_mentions",
+  {
+    id: serial().primaryKey(),
+    externalId: text("external_id").notNull().unique(), // canonical URL / guid used to de-duplicate
+    sourceKey: text("source_key").notNull(),
+    outlet: text().notNull(),
+    channel: text().notNull().default("News"), // News | YouTube | Reddit | ...
+    author: text().notNull().default(""),
+    title: text().notNull(),
+    summary: text().notNull().default(""),
+    url: text().notNull(),
+    imageUrl: text("image_url"),
+    publishedAt: timestamp("published_at").notNull(),
+    fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+    sentiment: text().notNull().default("NEUTRAL"), // POSITIVE | NEUTRAL | NEGATIVE
+    priority: boolean().notNull().default(false),
+    topics: text().notNull().default(""), // space separated hashtags
+    analyzed: boolean().notNull().default(false),
+  },
+  (t) => [index("media_mentions_published_idx").on(t.publishedAt)],
+);
+
+// Health of each monitored source, updated on every check.
+export const monitorSources = pgTable("monitor_sources", {
+  key: text().primaryKey(),
+  name: text().notNull(),
+  channel: text().notNull().default("News"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  lastSuccessAt: timestamp("last_success_at"),
+  lastError: text("last_error"),
+  lastItemCount: integer("last_item_count").notNull().default(0),
 });
