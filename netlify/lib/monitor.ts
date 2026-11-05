@@ -12,6 +12,8 @@ type Source = {
   url: string;
   outlet?: string; // fixed outlet name; Google News items carry their own
   filter: boolean; // only keep items matching education keywords
+  kind?: "rss" | "facebook";
+  minIntervalMs?: number; // check less often than every minute
 };
 
 const gnews = (q: string) =>
@@ -45,6 +47,75 @@ export const SOURCES: Source[] = [
     url: "https://www.reddit.com/r/Bahamas/new/.rss?limit=50" },
 ];
 
+// ---------- Facebook: public Pages of Bahamian news outlets ----------
+// Read through Meta's Graph API with an app token that has "Page Public Content Access".
+// Set FACEBOOK_ACCESS_TOKEN to enable. FACEBOOK_PAGES can override the list as
+// "pageUsernameOrId:Display Name, ...". Posts written by the Ministry itself are excluded.
+const FB_GRAPH = "https://graph.facebook.com/v23.0";
+const FB_INTERVAL_MS = 10 * 60_000;
+const DEFAULT_FB_PAGES = [
+  "ZNSBahamas:ZNS Bahamas",
+  "ewnewsbahamas:EyeWitness News",
+  "OurNewsBahamas:Our News",
+  "tribune242:The Tribune",
+  "thenassauguardian:The Nassau Guardian",
+  "bahamaspress:Bahamas Press",
+];
+// Authors treated as "the Ministry" and never stored.
+const MINISTRY_AUTHOR = /\b(ministry of education|MOEST)\b/i;
+const ministryIds = () => new Set((process.env.FACEBOOK_MINISTRY_PAGE_IDS || "").split(",").map((s) => s.trim()).filter(Boolean));
+
+function facebookSources(): Source[] {
+  if (!process.env.FACEBOOK_ACCESS_TOKEN) return [];
+  const list = process.env.FACEBOOK_PAGES ? process.env.FACEBOOK_PAGES.split(",") : DEFAULT_FB_PAGES;
+  return list.map((entry) => {
+    const [page, ...rest] = entry.trim().split(":");
+    const name = rest.join(":").trim() || page;
+    return {
+      key: `facebook-${page.toLowerCase()}`, name: `${name} (Facebook)`, channel: "Facebook", outlet: name,
+      filter: true, kind: "facebook" as const, minIntervalMs: FB_INTERVAL_MS, url: page.trim(),
+    };
+  }).filter((s) => s.url);
+}
+
+export const allSources = () => [...SOURCES, ...facebookSources()];
+
+type FbPost = {
+  id: string; message?: string; created_time: string; permalink_url?: string; full_picture?: string;
+  from?: { id: string; name: string };
+};
+
+async function fetchFacebook(src: Source): Promise<(RawItem & { outlet: string })[]> {
+  const params = new URLSearchParams({
+    fields: "id,message,created_time,permalink_url,full_picture,from",
+    limit: "25",
+    access_token: process.env.FACEBOOK_ACCESS_TOKEN || "",
+  });
+  const res = await fetch(`${FB_GRAPH}/${encodeURIComponent(src.url)}/posts?${params}`, { signal: AbortSignal.timeout(8000) });
+  const body = (await res.json().catch(() => ({}))) as { data?: FbPost[]; error?: { message?: string } };
+  if (!res.ok || body.error) throw new Error(`Facebook: ${body.error?.message || `HTTP ${res.status}`}`);
+  const skipIds = ministryIds();
+  const cutoff = Date.now() - MAX_AGE_MS;
+  return (body.data || [])
+    .filter((p) => p.message && !(p.from && (skipIds.has(p.from.id) || MINISTRY_AUTHOR.test(p.from.name))))
+    .map((p) => {
+      const text = p.message!.replace(/\s+/g, " ").trim();
+      const firstLine = p.message!.split("\n").map((l) => l.trim()).find(Boolean) || text;
+      const title = firstLine.length > 160 ? firstLine.slice(0, 157).trimEnd() + "…" : firstLine;
+      return {
+        externalId: `fb:${p.id}`,
+        title,
+        summary: text.slice(0, 1200),
+        url: p.permalink_url || `https://www.facebook.com/${p.id}`,
+        publishedAt: new Date(p.created_time),
+        outlet: src.outlet || src.name,
+        author: p.from?.name || "",
+        imageUrl: p.full_picture || null,
+      };
+    })
+    .filter((i) => i.publishedAt.getTime() > cutoff && isRelevant(i.summary));
+}
+
 const MAX_AGE_MS = 7 * 24 * 3600_000;
 const UA = "Mozilla/5.0 (compatible; MOESTMediaMonitor/1.0; +https://ministryofeducationbahamas.netlify.app)";
 
@@ -76,6 +147,7 @@ const attr = (xml: string, name: string, attribute: string) => {
 };
 
 type RawItem = {
+  externalId?: string;
   title: string; url: string; summary: string; publishedAt: Date;
   outlet?: string; author: string; imageUrl: string | null;
 };
@@ -161,6 +233,7 @@ export async function analyzeWithAI(items: { id: number; title: string; summary:
 
 // ---------- Run ----------
 async function fetchSource(src: Source) {
+  if (src.kind === "facebook") return fetchFacebook(src);
   const res = await fetch(src.url, { headers: { "User-Agent": UA, Accept: "application/rss+xml, application/atom+xml, text/xml, */*" }, signal: AbortSignal.timeout(8000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const items = parseFeed(await res.text());
@@ -187,11 +260,15 @@ export async function lastCheckedAt(): Promise<Date | null> {
 
 export async function runMonitor() {
   const started = new Date();
-  const results = await Promise.allSettled(SOURCES.map(fetchSource));
+  // Skip sources that were checked recently and ask to be polled less often.
+  const statuses = await db.select({ key: monitorSources.key, at: monitorSources.lastCheckedAt }).from(monitorSources);
+  const lastByKey = new Map(statuses.map((s) => [s.key, s.at?.getTime() || 0]));
+  const due = allSources().filter((s) => !s.minIntervalMs || started.getTime() - (lastByKey.get(s.key) || 0) >= s.minIntervalMs - 5_000);
+  const results = await Promise.allSettled(due.map(fetchSource));
   let inserted = 0;
 
-  for (let i = 0; i < SOURCES.length; i++) {
-    const src = SOURCES[i];
+  for (let i = 0; i < due.length; i++) {
+    const src = due[i];
     const r = results[i];
     const ok = r.status === "fulfilled";
     const items = ok ? r.value : [];
@@ -201,7 +278,7 @@ export async function runMonitor() {
         const text = `${it.title} ${it.summary}`;
         const h = heuristic(text);
         return {
-          externalId: normTitle(it.title),
+          externalId: it.externalId || normTitle(it.title),
           sourceKey: src.key,
           outlet: it.outlet.slice(0, 200),
           channel: src.channel,
@@ -259,7 +336,7 @@ export async function runMonitor() {
     }
   }
 
-  const failed = SOURCES.filter((_, i) => results[i].status === "rejected").map((s) => s.key);
+  const failed = due.filter((_, i) => results[i].status === "rejected").map((s) => s.key);
   console.log(`Media monitor: ${inserted} new, ${analyzed} analysed, failed sources: ${failed.join(", ") || "none"}`);
   return { inserted, analyzed, failed, checkedAt: started };
 }
