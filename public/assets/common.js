@@ -246,9 +246,93 @@
   }
 
 
+  // ---------- Live coverage actions (shared by Dashboard and Stories) ----------
+  // Each action calls onDone(updatedItem | null) after the server confirms the change.
+  const COVERAGE_CHANNELS = ['News', 'Facebook', 'X', 'Instagram', 'YouTube', 'TikTok', 'Reddit', 'Other'];
+  let coverageModal = null;
+
+  function ensureCoverageModal() {
+    if (coverageModal) return coverageModal;
+    const wrap = document.createElement('div');
+    wrap.id = 'coverageModal';
+    wrap.className = 'fixed inset-0 z-[65] bg-black/60 hidden items-center justify-center p-4';
+    wrap.setAttribute('role', 'dialog');
+    wrap.setAttribute('aria-modal', 'true');
+    wrap.setAttribute('aria-labelledby', 'coverageModalTitle');
+    const field = 'w-full mt-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-bahama-aqua';
+    const label = 'block text-[11px] font-semibold text-slate-600 dark:text-slate-300';
+    wrap.innerHTML = `
+      <form class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 id="coverageModalTitle" class="text-sm font-bold text-slate-900 dark:text-white"><i class="fa-solid fa-pen text-bahama-aqua me-2"></i>Edit Coverage Item</h3>
+          <button type="button" data-close class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <label class="${label}">Headline<input name="title" required maxlength="300" class="${field}"></label>
+        <label class="${label}">Summary<textarea name="summary" rows="4" maxlength="4000" class="${field}"></textarea></label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="${label}">Outlet<input name="outlet" required maxlength="200" class="${field}"></label>
+          <label class="${label}">Author / handle<input name="author" maxlength="200" class="${field}"></label>
+          <label class="${label}">Channel<select name="channel" class="${field}">${COVERAGE_CHANNELS.map((c) => `<option>${c}</option>`).join('')}</select></label>
+          <label class="${label}">Sentiment<select name="sentiment" class="${field}">
+            <option value="POSITIVE">Positive</option><option value="NEUTRAL">Neutral</option><option value="NEGATIVE">Negative</option></select></label>
+        </div>
+        <label class="${label}">Hashtags<input name="topics" maxlength="500" class="${field}" placeholder="#MOESTBahamas"></label>
+        <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"><input type="checkbox" name="priority" class="rounded"> Flag as priority alert</label>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-700 transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-bahama-aqua text-white rounded-lg text-xs font-bold hover:bg-bahama-aqualight transition shadow-sm"><i class="fa-solid fa-floppy-disk me-1"></i> Save Changes</button>
+        </div>
+      </form>`;
+    document.body.appendChild(wrap);
+    const close = () => { wrap.classList.add('hidden'); wrap.classList.remove('flex'); };
+    wrap.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', close));
+    wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !wrap.classList.contains('hidden')) close(); });
+    coverageModal = { wrap, form: wrap.querySelector('form'), close };
+    return coverageModal;
+  }
+
+  const coverage = {
+    edit(item, onDone) {
+      const { wrap, form, close } = ensureCoverageModal();
+      ['title', 'summary', 'outlet', 'author', 'topics'].forEach((k) => { form[k].value = item[k] || ''; });
+      form.channel.value = COVERAGE_CHANNELS.includes(item.channel) ? item.channel : 'Other';
+      form.sentiment.value = item.sentiment || 'NEUTRAL';
+      form.priority.checked = !!item.priority;
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const body = Object.fromEntries(new FormData(form));
+        body.priority = form.priority.checked;
+        try {
+          const updated = await api(`/api/mentions/${item.id}`, { method: 'PATCH', body });
+          close();
+          toast('Coverage item updated');
+          onDone && onDone(updated);
+        } catch (err) { toast(err.message, 'error'); }
+      };
+      wrap.classList.remove('hidden'); wrap.classList.add('flex');
+      form.title.focus();
+    },
+    async archive(item, archived, onDone) {
+      try {
+        const updated = await api(`/api/mentions/${item.id}`, { method: 'PATCH', body: { archived } });
+        toast(archived ? 'Moved to archive' : 'Restored to live coverage');
+        onDone && onDone(updated);
+      } catch (err) { toast(err.message, 'error'); }
+    },
+    async remove(item, onDone) {
+      if (!confirm(`Remove "${item.title}" from coverage? It will be hidden everywhere and won't be collected again.`)) return;
+      try {
+        await api(`/api/mentions/${item.id}`, { method: 'DELETE' });
+        toast('Coverage item removed');
+        onDone && onDone(null);
+      } catch (err) { toast(err.message, 'error'); }
+    },
+  };
+
   window.MOEST = {
     esc, api, toast, timeAgo, fmtDate, CHANNEL_ICONS, sentimentBadge, paragraphs, hostOf, videoEmbed,
     nodeToBlob, appendNodeToPdf, downloadBlob, shareBlob, fileSlug,
-    topicPhoto, storyThumb,
+    topicPhoto, storyThumb, coverage,
   };
 })();

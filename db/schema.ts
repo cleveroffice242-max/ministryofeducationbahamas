@@ -17,6 +17,8 @@ export const stories = pgTable("stories", {
   videoUrl: text("video_url"),
   sentiment: text().notNull().default("NEUTRAL"), // POSITIVE | NEUTRAL | NEGATIVE
   tags: text().notNull().default(""), // space separated hashtags
+  // Set when staff archive a story: hidden from the main library but kept and restorable.
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -73,6 +75,8 @@ export const mediaMentions = pgTable(
     analyzed: boolean().notNull().default(false),
     // false when the AI review found no direct link to MOEST or its leadership; hidden from the app.
     relevant: boolean().notNull().default(true),
+    // Set when staff archive an item: hidden from live coverage but kept and restorable.
+    archivedAt: timestamp("archived_at"),
   },
   (t) => [index("media_mentions_published_idx").on(t.publishedAt)],
 );

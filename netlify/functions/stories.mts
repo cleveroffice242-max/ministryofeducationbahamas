@@ -71,6 +71,18 @@ export default async (req: Request, context: Context) => {
     return updated ? json(updated) : error("Story not found", 404);
   }
 
+  // Archive or restore: archived stories leave the main library but are kept.
+  if (req.method === "PATCH" && id) {
+    const body = await readBody(req);
+    if (typeof body.archived !== "boolean") return error("Specify archived: true or false");
+    const [updated] = await db
+      .update(stories)
+      .set({ archivedAt: body.archived ? new Date() : null })
+      .where(eq(stories.id, id))
+      .returning();
+    return updated ? json(updated) : error("Story not found", 404);
+  }
+
   if (req.method === "DELETE" && id) {
     await db.delete(stories).where(eq(stories.id, id));
     return new Response(null, { status: 204 });

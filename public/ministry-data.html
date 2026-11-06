@@ -264,7 +264,7 @@
         return;
       }
       form().storyId.innerHTML = '<option value="">— None —</option>' +
-        stories.map((s) => `<option value="${s.id}">${esc(s.title)} (${esc(s.outlet)})</option>`).join('');
+        stories.map((s) => `<option value="${s.id}">${esc(s.title)} (${esc(s.outlet)})${s.archivedAt ? ' · archived' : ''}</option>`).join('');
 
       renderTiles();
       renderList();

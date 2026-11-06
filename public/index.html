@@ -518,6 +518,7 @@
       priority: m.priority,
       topics: (m.topics || '').split(/\s+/).filter(Boolean),
       fresh: false,
+      raw: m,
     });
 
     async function loadMentions() {
@@ -710,6 +711,7 @@
       try {
         const [stories, records] = await Promise.all([MOEST.api('/api/stories'), MOEST.api('/api/records')]);
         stories.forEach(s => { storyIdsBySlug[s.slug] = s.id; });
+        stories = stories.filter(s => !s.archivedAt);
         const links = stories.reduce((n, s) => n + s.links.length, 0);
         const videos = stories.filter(s => s.videoUrl).length;
         document.getElementById('storiesQuickStat').textContent = `${stories.length} full stories · ${videos} with video · ${links} related links`;
@@ -859,10 +861,33 @@
                 </button>
               </div>
             </div>
+            <div class="mt-2 flex items-center justify-end gap-4 text-[11px] text-slate-500">
+              <button onclick="editPost(${post.id})" class="font-semibold hover:text-bahama-aqua"><i class="fa-solid fa-pen me-1"></i>Edit</button>
+              <button onclick="archivePost(${post.id})" class="font-semibold hover:text-bahama-aqua"><i class="fa-solid fa-box-archive me-1"></i>Archive</button>
+              <button onclick="removePost(${post.id})" class="font-semibold hover:text-rose-500"><i class="fa-solid fa-trash me-1"></i>Remove</button>
+            </div>
           </div>
         `;
       }).join('');
     }
+    // Edit / archive / remove a coverage item (archived items are kept on the Stories page)
+    function dropPost(id) {
+      postsData = postsData.filter(p => p.id !== id);
+      renderAll();
+    }
+    function editPost(id) {
+      const post = postsData.find(p => p.id === id);
+      if (post) MOEST.coverage.edit(post.raw, () => loadMentions());
+    }
+    function archivePost(id) {
+      const post = postsData.find(p => p.id === id);
+      if (post) MOEST.coverage.archive(post.raw, true, () => dropPost(id));
+    }
+    function removePost(id) {
+      const post = postsData.find(p => p.id === id);
+      if (post) MOEST.coverage.remove(post.raw, () => dropPost(id));
+    }
+
     // Modal Operations
     function openResponseModal(postId) {
       const post = postsData.find(p => p.id === postId);
