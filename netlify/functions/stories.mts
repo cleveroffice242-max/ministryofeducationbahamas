@@ -4,6 +4,13 @@ import { db } from "../../db/index.js";
 import { stories, storyLinks } from "../../db/schema.js";
 import { ensureSeeded } from "../../db/seed.js";
 import { error, json, oneOf, parseId, readBody, safeUrl, str } from "../lib/http.js";
+import { isRelevant } from "../lib/relevance.js";
+
+const OUT_OF_SCOPE =
+  "This library only records coverage directly linked to the Ministry of Education, Science and Technology, " +
+  "Minister Chester Cooper, Director of Education Dominique McCartney-Russell or Permanent Secretary Neil Campbell. " +
+  "Name the Ministry or the official in the title, summary or write-up.";
+const inScope = (f: ReturnType<typeof storyFields>) => isRelevant(`${f.title}\n${f.summary}\n${f.body}\n${f.tags}`);
 
 const CHANNELS = ["News", "Facebook", "X", "Instagram", "YouTube", "TikTok", "Other"] as const;
 const SENTIMENTS = ["POSITIVE", "NEUTRAL", "NEGATIVE"] as const;
@@ -47,6 +54,7 @@ export default async (req: Request, context: Context) => {
     const fields = storyFields(await readBody(req));
     if (!fields.title || !fields.outlet) return error("Title and outlet are required");
     if (!fields.sourceUrl) return error("A valid original source URL (http/https) is required");
+    if (!inScope(fields)) return error(OUT_OF_SCOPE, 422);
     const slug = `${slugify(fields.title)}-${Date.now().toString(36)}`;
     const [created] = await db.insert(stories).values({ ...fields, sourceUrl: fields.sourceUrl, slug }).returning();
     return json({ ...created, links: [] }, 201);
@@ -56,6 +64,7 @@ export default async (req: Request, context: Context) => {
     const fields = storyFields(await readBody(req));
     if (!fields.title || !fields.outlet) return error("Title and outlet are required");
     if (!fields.sourceUrl) return error("A valid original source URL (http/https) is required");
+    if (!inScope(fields)) return error(OUT_OF_SCOPE, 422);
     const [updated] = await db
       .update(stories)
       .set({ ...fields, sourceUrl: fields.sourceUrl })

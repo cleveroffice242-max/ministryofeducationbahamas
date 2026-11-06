@@ -71,6 +71,8 @@ export const mediaMentions = pgTable(
     priority: boolean().notNull().default(false),
     topics: text().notNull().default(""), // space separated hashtags
     analyzed: boolean().notNull().default(false),
+    // false when the AI review found no direct link to MOEST or its leadership; hidden from the app.
+    relevant: boolean().notNull().default(true),
   },
   (t) => [index("media_mentions_published_idx").on(t.publishedAt)],
 );
