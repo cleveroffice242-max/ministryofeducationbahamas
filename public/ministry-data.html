@@ -22,6 +22,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="/assets/common.js"></script>
+  <script type="module" src="/assets/auth.js"></script>
 
   <style>
     .doc-body p { margin-bottom: 12px; }
@@ -57,10 +58,10 @@
           </div>
         </a>
         <div class="flex items-center space-x-3">
-          <button onclick="exportAll()" id="exportAllBtn" class="hidden md:flex items-center space-x-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
+          <button onclick="exportAll()" id="exportAllBtn" class="editor-only hidden md:flex items-center space-x-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
             <i class="fa-solid fa-file-pdf"></i><span>Export Visible as PDF</span>
           </button>
-          <button onclick="newRecord()" class="flex items-center space-x-2 bg-bahama-gold text-slate-950 hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+          <button onclick="newRecord()" class="editor-only flex items-center space-x-2 bg-bahama-gold text-slate-950 hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
             <i class="fa-solid fa-plus"></i><span class="hidden sm:inline">New Record</span>
           </button>
           <button onclick="toggleTheme()" aria-label="Toggle theme" class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition">
@@ -240,6 +241,21 @@
     const form = () => document.getElementById('recordForm');
 
     document.addEventListener('DOMContentLoaded', async () => {
+      // Ministry Data holds internal drafts: staff only.
+      const { isEditor } = await MOEST.authReady;
+      if (!isEditor) {
+        document.querySelector('main').innerHTML = `
+          <div class="max-w-md mx-auto text-center py-20">
+            <div class="w-14 h-14 mx-auto rounded-full bg-bahama-aqua/10 text-bahama-aqua flex items-center justify-center mb-4"><i class="fa-solid fa-lock text-xl"></i></div>
+            <h2 class="text-base font-bold">Ministry staff only</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Ministry Data holds internal responses, drafts and briefs. Sign in with a staff editor account to view and edit them.</p>
+            <div class="mt-5 flex justify-center gap-2">
+              <button type="button" onclick="MOEST.auth ? MOEST.auth.signIn() : location.reload()" class="px-4 py-2 bg-bahama-aqua text-white rounded-lg text-xs font-bold hover:bg-bahama-aqualight transition"><i class="fa-solid fa-right-to-bracket me-1"></i>Staff sign in</button>
+              <a href="/stories.html" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-700 transition">View stories</a>
+            </div>
+          </div>`;
+        return;
+      }
       form().kind.innerHTML = KINDS.map((k) => `<option>${k.name}</option>`).join('');
       document.getElementById('kindChips').innerHTML = ['ALL', ...KINDS.map((k) => k.name)].map((k) =>
         `<button type="button" class="chip" data-kind="${esc(k)}" aria-pressed="${k === 'ALL'}">${k === 'ALL' ? 'All Types' : esc(k)}</button>`).join('');

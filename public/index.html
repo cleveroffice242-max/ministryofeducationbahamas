@@ -31,6 +31,7 @@
   
   <!-- Shared helpers (tabs, theme, API) -->
   <script src="/assets/common.js"></script>
+  <script type="module" src="/assets/auth.js"></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -96,7 +97,7 @@
         <span id="liveStatus" class="hidden lg:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400" aria-live="polite">
           <i class="fa-solid fa-circle text-[7px] text-slate-400"></i> Connecting…
         </span>
-        <button id="checkNowBtn" onclick="checkNow()" class="hidden sm:flex items-center space-x-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
+        <button id="checkNowBtn" onclick="checkNow()" class="editor-only hidden sm:flex items-center space-x-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
           <i class="fa-solid fa-arrows-rotate"></i>
           <span>Check Now</span>
         </button>
@@ -200,7 +201,7 @@
 
     <!-- QUICK ACCESS: STORIES & MINISTRY DATA -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <a href="/stories.html" class="group relative overflow-hidden rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-bahama-aqua/60 transition flex min-h-[150px] isolate">
+      <a href="/stories.html" class="[html:not(.can-edit)_&]:md:col-span-2 group relative overflow-hidden rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-bahama-aqua/60 transition flex min-h-[150px] isolate">
         <img src="/assets/img/newsroom.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-105 transition duration-500">
         <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/30 -z-10"></div>
         <div class="p-5 flex items-start gap-4 text-white">
@@ -215,7 +216,7 @@
           </div>
         </div>
       </a>
-      <a href="/ministry-data.html" class="group relative overflow-hidden rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-bahama-gold/70 transition flex min-h-[150px] isolate">
+      <a href="/ministry-data.html" class="editor-only group relative overflow-hidden rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-bahama-gold/70 transition flex min-h-[150px] isolate">
         <img src="/assets/img/hero-data.webp" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover -z-20 group-hover:scale-105 transition duration-500">
         <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/30 -z-10"></div>
         <div class="p-5 flex items-start gap-4 text-white">
@@ -709,7 +710,8 @@
     let storyIdsBySlug = {};
     async function loadQuickStats() {
       try {
-        const [stories, records] = await Promise.all([MOEST.api('/api/stories'), MOEST.api('/api/records')]);
+        const { isEditor } = await MOEST.authReady;
+        const [stories, records] = await Promise.all([MOEST.api('/api/stories'), isEditor ? MOEST.api('/api/records') : []]);
         stories.forEach(s => { storyIdsBySlug[s.slug] = s.id; });
         stories = stories.filter(s => !s.archivedAt);
         const links = stories.reduce((n, s) => n + s.links.length, 0);
@@ -856,12 +858,12 @@
                 <a href="${esc(post.url)}" target="_blank" rel="noopener noreferrer" class="text-slate-500 dark:text-slate-300 hover:text-bahama-aqua text-xs font-bold flex items-center gap-1 transition">
                   <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Original
                 </a>
-                <button onclick="openResponseModal(${post.id})" class="text-bahama-aqua hover:text-bahama-aqualight text-xs font-bold flex items-center gap-1 transition">
+                <button onclick="openResponseModal(${post.id})" class="editor-only text-bahama-aqua hover:text-bahama-aqualight text-xs font-bold flex items-center gap-1 transition">
                   <i class="fa-solid fa-reply"></i> Draft Official Response
                 </button>
               </div>
             </div>
-            <div class="mt-2 flex items-center justify-end gap-4 text-[11px] text-slate-500">
+            <div class="editor-only mt-2 flex items-center justify-end gap-4 text-[11px] text-slate-500">
               <button onclick="editPost(${post.id})" class="font-semibold hover:text-bahama-aqua"><i class="fa-solid fa-pen me-1"></i>Edit</button>
               <button onclick="archivePost(${post.id})" class="font-semibold hover:text-bahama-aqua"><i class="fa-solid fa-box-archive me-1"></i>Archive</button>
               <button onclick="removePost(${post.id})" class="font-semibold hover:text-rose-500"><i class="fa-solid fa-trash me-1"></i>Remove</button>

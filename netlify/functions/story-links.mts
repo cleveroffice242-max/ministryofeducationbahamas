@@ -3,8 +3,11 @@ import { eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { stories, storyLinks } from "../../db/schema.js";
 import { error, json, parseId, readBody, safeUrl, str } from "../lib/http.js";
+import { requireEditor } from "../lib/auth.js";
 
 export default async (req: Request, context: Context) => {
+  const denied = await requireEditor();
+  if (denied) return denied;
   if (req.method === "POST" && context.params.id) {
     const storyId = parseId(context.params.id);
     if (!storyId) return error("Invalid story id", 404);

@@ -3,6 +3,19 @@
   // Persisted theme (applied as early as possible to avoid a flash).
   if (localStorage.getItem('moest-theme') === 'light') document.documentElement.classList.remove('dark');
 
+  // ---------- Staff access ----------
+  // Every control that changes content carries the "editor-only" class. It stays hidden
+  // unless /assets/auth.js confirms a signed-in editor and adds "can-edit" to <html>.
+  // The server enforces the same rule on every change, so hiding is not the only safeguard.
+  const accessStyle = document.createElement('style');
+  accessStyle.textContent = 'html:not(.can-edit) .editor-only{display:none !important}html.can-edit .viewer-only{display:none !important}';
+  document.head.appendChild(accessStyle);
+  let resolveAuth;
+  const authReady = new Promise((r) => { resolveAuth = r; });
+  window.__moestResolveAuth = (state) => { resolveAuth(state); };
+  // If the sign-in module can't load, carry on in view-only mode.
+  setTimeout(() => resolveAuth({ user: null, isEditor: false }), 8000);
+
   window.toggleTheme = function () {
     const dark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('moest-theme', dark ? 'dark' : 'light');
@@ -12,7 +25,7 @@
   const TABS = [
     { key: 'dashboard', href: '/', icon: 'fa-gauge-high', label: 'Dashboard' },
     { key: 'stories', href: '/stories.html', icon: 'fa-newspaper', label: 'Stories & Media' },
-    { key: 'ministry', href: '/ministry-data.html', icon: 'fa-folder-tree', label: 'Ministry Data' },
+    { key: 'ministry', href: '/ministry-data.html', icon: 'fa-folder-tree', label: 'Ministry Data', editorOnly: true },
   ];
 
   function renderTabs() {
@@ -25,7 +38,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1 overflow-x-auto">
         ${TABS.map((t) => `
           <a href="${t.href}" ${t.key === active ? 'aria-current="page"' : ''}
-             class="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition ${
+             class="${t.editorOnly ? 'editor-only ' : ''}flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition ${
                t.key === active
                  ? 'border-bahama-gold text-bahama-aqua dark:text-white'
                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
@@ -333,6 +346,6 @@
   window.MOEST = {
     esc, api, toast, timeAgo, fmtDate, CHANNEL_ICONS, sentimentBadge, paragraphs, hostOf, videoEmbed,
     nodeToBlob, appendNodeToPdf, downloadBlob, shareBlob, fileSlug,
-    topicPhoto, storyThumb, coverage,
+    topicPhoto, storyThumb, coverage, authReady,
   };
 })();

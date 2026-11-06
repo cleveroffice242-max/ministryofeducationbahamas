@@ -4,6 +4,7 @@ import { db } from "../../db/index.js";
 import { mediaMentions, monitorSources } from "../../db/schema.js";
 import { lastCheckedAt, runMonitor } from "../lib/monitor.js";
 import { isRelevant } from "../lib/relevance.js";
+import { requireEditor } from "../lib/auth.js";
 import { error, json, oneOf, parseId, readBody, str } from "../lib/http.js";
 
 const WINDOW_MS = 7 * 24 * 3600_000;
@@ -64,12 +65,14 @@ export default async (req: Request, context: Context) => {
   if (context.params.id && !url.pathname.endsWith("/refresh")) {
     const id = parseId(context.params.id);
     if (!id) return error("Invalid coverage id", 404);
-    if (req.method === "PATCH" || req.method === "DELETE") return updateMention(req, id);
+    if (req.method === "PATCH" || req.method === "DELETE") return (await requireEditor()) ?? updateMention(req, id);
     return error("Method not allowed", 405);
   }
 
   // "Check now": runs the monitor immediately unless it ran very recently.
   if (req.method === "POST" && url.pathname.endsWith("/refresh")) {
+    const denied = await requireEditor();
+    if (denied) return denied;
     const last = await lastCheckedAt();
     if (last && Date.now() - last.getTime() < MIN_MANUAL_INTERVAL_MS) {
       return json({ skipped: true, checkedAt: last });
@@ -81,6 +84,10 @@ export default async (req: Request, context: Context) => {
 
   // ?view=archived lists archived items of any age; the default is the live 7-day window.
   const archived = url.searchParams.get("view") === "archived";
+  if (archived) {
+    const denied = await requireEditor();
+    if (denied) return denied;
+  }
   const since = new Date(Date.now() - WINDOW_MS);
   const where = archived
     ? and(eq(mediaMentions.relevant, true), isNotNull(mediaMentions.archivedAt))
