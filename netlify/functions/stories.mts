@@ -1,10 +1,10 @@
 import type { Config, Context } from "@netlify/functions";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { stories, storyLinks } from "../../db/schema.js";
-import { ensureSeeded } from "../../db/seed.js";
 import { error, json, oneOf, parseId, readBody, safeUrl, str } from "../lib/http.js";
 import { isRelevant } from "../lib/relevance.js";
+import { isEditor, requireEditor } from "../lib/auth.js";
 
 const OUT_OF_SCOPE =
   "This library only records coverage directly linked to the Ministry of Education, Science and Technology, " +
@@ -40,15 +40,21 @@ export default async (req: Request, context: Context) => {
   if (id === null) return error("Invalid story id", 404);
 
   if (req.method === "GET") {
-    await ensureSeeded();
+    // Viewers only see the active library; archived stories are for staff.
+    const staff = await isEditor();
+    const visible = staff ? undefined : isNull(stories.archivedAt);
     const rows = id
-      ? await db.select().from(stories).where(eq(stories.id, id))
-      : await db.select().from(stories).orderBy(desc(stories.publishedAt));
+      ? await db.select().from(stories).where(and(eq(stories.id, id), visible))
+      : await db.select().from(stories).where(visible).orderBy(desc(stories.publishedAt));
     const links = await db.select().from(storyLinks).orderBy(asc(storyLinks.createdAt));
     const withLinks = rows.map((s) => ({ ...s, links: links.filter((l) => l.storyId === s.id) }));
     if (id) return withLinks[0] ? json(withLinks[0]) : error("Story not found", 404);
     return json(withLinks);
   }
+
+  // Everything below changes the library.
+  const denied = await requireEditor();
+  if (denied) return denied;
 
   if (req.method === "POST" && !id) {
     const fields = storyFields(await readBody(req));
@@ -68,6 +74,18 @@ export default async (req: Request, context: Context) => {
     const [updated] = await db
       .update(stories)
       .set({ ...fields, sourceUrl: fields.sourceUrl })
+      .where(eq(stories.id, id))
+      .returning();
+    return updated ? json(updated) : error("Story not found", 404);
+  }
+
+  // Archive or restore: archived stories leave the main library but are kept.
+  if (req.method === "PATCH" && id) {
+    const body = await readBody(req);
+    if (typeof body.archived !== "boolean") return error("Specify archived: true or false");
+    const [updated] = await db
+      .update(stories)
+      .set({ archivedAt: body.archived ? new Date() : null })
       .where(eq(stories.id, id))
       .returning();
     return updated ? json(updated) : error("Story not found", 404);

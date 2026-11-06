@@ -2,8 +2,8 @@ import type { Config, Context } from "@netlify/functions";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { ministryRecords } from "../../db/schema.js";
-import { ensureSeeded } from "../../db/seed.js";
 import { error, json, oneOf, parseId, readBody, str } from "../lib/http.js";
+import { requireEditor } from "../lib/auth.js";
 
 const KINDS = ["Response", "Write-up", "Press Release", "Statement", "Data Brief", "Note"] as const;
 const STATUSES = ["Draft", "In Review", "Approved", "Published"] as const;
@@ -22,11 +22,13 @@ function recordFields(body: Record<string, unknown>) {
 }
 
 export default async (req: Request, context: Context) => {
+  // Ministry Data holds internal drafts and responses: staff only, including reads.
+  const denied = await requireEditor();
+  if (denied) return denied;
   const id = context.params.id ? parseId(context.params.id) : undefined;
   if (id === null) return error("Invalid record id", 404);
 
   if (req.method === "GET") {
-    await ensureSeeded();
     if (id) {
       const [row] = await db.select().from(ministryRecords).where(eq(ministryRecords.id, id));
       return row ? json(row) : error("Record not found", 404);

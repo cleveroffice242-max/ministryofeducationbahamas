@@ -20,6 +20,7 @@
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="/assets/common.js"></script>
+  <script type="module" src="/assets/auth.js"></script>
 
   <style>
     .story-body p { margin-bottom: 0.9rem; }
@@ -51,7 +52,7 @@
           </div>
         </a>
         <div class="flex items-center space-x-3">
-          <button onclick="openStoryModal()" class="flex items-center space-x-2 bg-bahama-gold text-slate-950 hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+          <button onclick="openStoryModal()" class="editor-only flex items-center space-x-2 bg-bahama-gold text-slate-950 hover:bg-yellow-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
             <i class="fa-solid fa-plus"></i><span class="hidden sm:inline">Log New Story</span>
           </button>
           <button onclick="toggleTheme()" aria-label="Toggle theme" class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition">
@@ -118,11 +119,15 @@
             Live Coverage
             <span id="liveCount" class="text-xs font-semibold text-slate-400"></span>
           </h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Education stories picked up automatically from Bahamian news and social sources, checked every minute. Save any item to the library to add the full write-up, photos and related links.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Education stories picked up automatically from Bahamian news and social sources, checked every minute. <span class="editor-only">Save any item to the library to add the full write-up, photos and related links, or edit, archive or remove it.</span></p>
         </div>
-        <div class="flex items-center gap-3 shrink-0">
+        <div class="flex items-center gap-3 shrink-0 flex-wrap">
+          <div class="editor-only flex rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 text-[11px] font-semibold" role="group" aria-label="Coverage view">
+            <button type="button" data-live-view="live" onclick="setLiveView('live')" class="px-2.5 py-1 rounded-md transition">Live</button>
+            <button type="button" data-live-view="archived" onclick="setLiveView('archived')" class="px-2.5 py-1 rounded-md transition"><i class="fa-solid fa-box-archive me-1"></i>Archived</button>
+          </div>
           <span id="liveStatus" class="text-[11px] text-slate-500 dark:text-slate-400" aria-live="polite">Connecting…</span>
-          <button id="checkNowBtn" onclick="checkNow()" class="flex items-center gap-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
+          <button id="checkNowBtn" onclick="checkNow()" class="editor-only flex items-center gap-2 bg-bahama-aqua/10 text-bahama-aqua hover:bg-bahama-aqua/20 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold border border-bahama-aqua/30 transition">
             <i class="fa-solid fa-arrows-rotate"></i><span>Check Now</span>
           </button>
         </div>
@@ -143,8 +148,17 @@
       </aside>
 
       <!-- Full stories -->
-      <div id="storiesList" class="space-y-6 min-w-0">
-        <div class="text-center py-16 text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Loading stories…</div>
+      <div class="min-w-0 space-y-4">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <h2 class="text-sm font-bold">Story Library</h2>
+          <div class="editor-only flex rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 text-[11px] font-semibold" role="group" aria-label="Library view">
+            <button type="button" data-library-view="active" onclick="setLibraryView('active')" class="px-2.5 py-1 rounded-md transition">Active <span data-count="active"></span></button>
+            <button type="button" data-library-view="archived" onclick="setLibraryView('archived')" class="px-2.5 py-1 rounded-md transition"><i class="fa-solid fa-box-archive me-1"></i>Archived <span data-count="archived"></span></button>
+          </div>
+        </div>
+        <div id="storiesList" class="space-y-6">
+          <div class="text-center py-16 text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin text-2xl mb-3 block"></i>Loading stories…</div>
+        </div>
       </div>
     </div>
   </main>
@@ -235,6 +249,9 @@
     let freshMentionIds = new Set();
     let monitor = { lastCheckedAt: null, sources: [], error: null };
     let liveExpanded = false;
+    let liveView = 'live';        // 'live' | 'archived'
+    let archivedMentions = null;  // loaded on first visit to the archive
+    let libraryView = 'active';   // 'active' | 'archived'
     let prefillMention = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -285,6 +302,7 @@
       const ch = document.getElementById('channelFilter').value;
       const se = document.getElementById('sentimentFilter').value;
       return stories.filter((s) =>
+        (libraryView === 'archived' ? !!s.archivedAt : !s.archivedAt) &&
         (ch === 'ALL' || s.channel === ch) &&
         (se === 'ALL' || s.sentiment === se) &&
         (!q || [s.title, s.outlet, s.handle, s.summary, s.body, s.tags].join(' ').toLowerCase().includes(q)));
@@ -294,6 +312,10 @@
       pendingRender = false;
       const list = filtered();
       document.getElementById('storyCount').textContent = `(${list.length})`;
+      paintToggle('library-view', libraryView);
+      const nArchived = stories.filter((s) => s.archivedAt).length;
+      document.querySelector('[data-count="active"]').textContent = `(${stories.length - nArchived})`;
+      document.querySelector('[data-count="archived"]').textContent = `(${nArchived})`;
       document.getElementById('storyIndex').innerHTML = list.map((s) => `
         <li><a href="#${esc(s.slug)}" class="flex gap-2 items-start px-2 py-2 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition">
           <i class="${ICONS[s.channel] || ICONS.Other} text-slate-400 mt-0.5 w-3.5"></i>
@@ -304,7 +326,7 @@
       const container = document.getElementById('storiesList');
       if (!list.length) {
         container.innerHTML = `<div class="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
-          <i class="fa-solid fa-folder-open text-3xl mb-2"></i><p class="text-xs">No stories match your filters.</p></div>`;
+          <i class="fa-solid fa-folder-open text-3xl mb-2"></i><p class="text-xs">${libraryView === 'archived' ? 'No archived stories.' : stories.some((s) => !s.archivedAt) ? 'No stories match your filters.' : 'No stories logged yet. Use Log New Story to add coverage with its original article link.'}</p></div>`;
         return;
       }
       container.innerHTML = list.map(storyCard).join('');
@@ -339,6 +361,7 @@
                   <span class="text-xs font-bold">${esc(s.outlet)}</span>
                   ${s.handle ? `<span class="text-[11px] text-slate-400">${esc(s.handle)}</span>` : ''}
                   <span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded">${esc(s.channel)}</span>
+                  ${s.archivedAt ? `<span class="text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded" title="Archived ${esc(fmtDate(s.archivedAt))}"><i class="fa-solid fa-box-archive me-1"></i>Archived</span>` : ''}
                 </div>
                 <time datetime="${esc(s.publishedAt)}" class="text-[10px] text-slate-400" title="${esc(fmtDate(s.publishedAt))}"><i class="fa-regular fa-clock me-1"></i>${esc(timeAgo(s.publishedAt))}</time>
               </div>
@@ -378,9 +401,9 @@
                   <span class="font-semibold text-bahama-aqua group-hover:underline">${esc(l.title)}</span>
                   <span class="block text-[10px] text-slate-400 truncate">${esc(hostOf(l.url))}${l.note ? ` — ${esc(l.note)}` : ''}${l.addedBy ? ` · added by ${esc(l.addedBy)}` : ''}</span>
                 </a>
-                <button onclick="removeLink(${l.id})" class="text-slate-400 hover:text-rose-500 text-xs shrink-0" aria-label="Remove link" title="Remove link"><i class="fa-solid fa-xmark"></i></button>
-              </li>`).join('')}</ul>` : `<p class="text-[11px] text-slate-400 mb-3">No related links yet — add coverage, statements or reference material below.</p>`}
-            <form onsubmit="addLink(event, ${s.id})" class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
+                <button onclick="removeLink(${l.id})" class="editor-only text-slate-400 hover:text-rose-500 text-xs shrink-0" aria-label="Remove link" title="Remove link"><i class="fa-solid fa-xmark"></i></button>
+              </li>`).join('')}</ul>` : `<p class="text-[11px] text-slate-400 mb-3">No related links yet<span class="editor-only"> — add coverage, statements or reference material below</span>.</p>`}
+            <form onsubmit="addLink(event, ${s.id})" class="editor-only grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
               <input name="url" type="url" required placeholder="https://related-link…" aria-label="Link URL" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
               <input name="title" maxlength="300" placeholder="Link title (optional)" aria-label="Link title" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs px-3 py-2 focus:ring-2 focus:ring-bahama-aqua">
               <button class="px-3 py-2 bg-bahama-aqua text-white rounded-lg text-xs font-bold hover:bg-bahama-aqualight transition whitespace-nowrap"><i class="fa-solid fa-plus me-1"></i> Add link</button>
@@ -389,9 +412,11 @@
 
           <!-- Actions -->
           <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800 pt-4">
-            <a href="/ministry-data.html?new=Response&story=${s.id}" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-bahama-gold text-slate-950 hover:bg-yellow-400 transition"><i class="fa-solid fa-feather-pointed me-1"></i> Draft Ministry Response</a>
+            <a href="/ministry-data.html?new=Response&story=${s.id}" class="editor-only px-3 py-1.5 rounded-lg text-xs font-bold bg-bahama-gold text-slate-950 hover:bg-yellow-400 transition"><i class="fa-solid fa-feather-pointed me-1"></i> Draft Ministry Response</a>
             <button onclick="copyStoryLink('${esc(s.slug)}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"><i class="fa-solid fa-share-nodes me-1"></i> Copy link</button>
-            <button onclick="openStoryModal(${s.id})" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"><i class="fa-solid fa-pen me-1"></i> Edit story</button>
+            <button onclick="openStoryModal(${s.id})" class="editor-only px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"><i class="fa-solid fa-pen me-1"></i> Edit story</button>
+            <button onclick="archiveStory(${s.id}, ${!s.archivedAt})" class="editor-only px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">${s.archivedAt ? '<i class="fa-solid fa-rotate-left me-1"></i> Restore' : '<i class="fa-solid fa-box-archive me-1"></i> Archive'}</button>
+            <button onclick="deleteStory(${s.id})" class="editor-only px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition ms-auto"><i class="fa-solid fa-trash me-1"></i> Delete</button>
           </div>
         </div>
       </article>`;
@@ -474,11 +499,13 @@
       el.title = monitor.sources.map((s) => `${s.name}: ${s.lastError ? 'error – ' + s.lastError : 'OK'}`).join('\n');
     }
 
+    const liveItems = () => (liveView === 'archived' ? archivedMentions || [] : mentions);
+
     function filteredMentions() {
       const q = document.getElementById('storySearch').value.trim().toLowerCase();
       const ch = document.getElementById('channelFilter').value;
       const se = document.getElementById('sentimentFilter').value;
-      return mentions.filter((m) =>
+      return liveItems().filter((m) =>
         (ch === 'ALL' || m.channel === ch) &&
         (se === 'ALL' || m.sentiment === se) &&
         (!q || [m.title, m.outlet, m.author, m.summary, m.topics].join(' ').toLowerCase().includes(q)));
@@ -490,13 +517,20 @@
       const all = filteredMentions();
       const list = liveExpanded ? all : all.slice(0, 12);
       const saved = new Set(stories.map((s) => s.sourceUrl));
-      document.getElementById('liveCount').textContent = mentions.length ? `(${all.length} in the last 7 days)` : '';
+      const archivedView = liveView === 'archived';
+      paintToggle('live-view', liveView);
+      document.getElementById('liveCount').textContent = archivedView
+        ? (archivedMentions ? `(${all.length} archived)` : '')
+        : mentions.length ? `(${all.length} in the last 7 days)` : '';
       const more = document.getElementById('liveMoreBtn');
       more.classList.toggle('hidden', all.length <= 12);
       more.textContent = liveExpanded ? 'Show fewer' : `Show all ${all.length} items`;
       const box = document.getElementById('liveList');
       if (!list.length) {
-        box.innerHTML = `<p class="text-xs text-slate-400 col-span-full py-6 text-center">${mentions.length ? 'No live coverage matches your filters.' : 'Waiting for the media monitor to collect coverage…'}</p>`;
+        const msg = archivedView
+          ? (archivedMentions === null ? '<i class="fa-solid fa-spinner fa-spin me-1"></i> Loading archive…' : archivedMentions.length ? 'No archived coverage matches your filters.' : 'No archived coverage. Use Archive on a live item to keep it here.')
+          : mentions.length ? 'No live coverage matches your filters.' : 'Waiting for the media monitor to collect coverage…';
+        box.innerHTML = `<p class="text-xs text-slate-400 col-span-full py-6 text-center">${msg}</p>`;
         return;
       }
       box.innerHTML = list.map((m) => {
@@ -519,7 +553,12 @@
             <div class="flex items-center gap-3 mt-2 text-[11px]">
               <a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer" class="font-semibold text-slate-500 hover:text-bahama-aqua"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Original</a>
               ${isSaved ? '<span class="text-emerald-500 font-semibold"><i class="fa-solid fa-check me-1"></i>In library</span>'
-                : `<button onclick="saveMention(${m.id})" class="font-semibold text-bahama-aqua hover:underline"><i class="fa-solid fa-bookmark me-1"></i>Save to library</button>`}
+                : `<button onclick="saveMention(${m.id})" class="editor-only font-semibold text-bahama-aqua hover:underline"><i class="fa-solid fa-bookmark me-1"></i>Save to library</button>`}
+            </div>
+            <div class="editor-only flex items-center gap-3 mt-1.5 text-[11px] text-slate-500">
+              <button onclick="editMention(${m.id})" class="font-semibold hover:text-bahama-aqua"><i class="fa-solid fa-pen me-1"></i>Edit</button>
+              <button onclick="archiveMention(${m.id}, ${!archivedView})" class="font-semibold hover:text-bahama-aqua">${archivedView ? '<i class="fa-solid fa-rotate-left me-1"></i>Restore' : '<i class="fa-solid fa-box-archive me-1"></i>Archive'}</button>
+              <button onclick="removeMention(${m.id})" class="font-semibold hover:text-rose-500"><i class="fa-solid fa-trash me-1"></i>Remove</button>
             </div>
           </div>
         </article>`;
@@ -527,8 +566,61 @@
     }
 
     function saveMention(id) {
-      prefillMention = mentions.find((m) => m.id === id) || null;
+      prefillMention = findMention(id);
       openStoryModal();
+    }
+
+    // ---------- Edit / archive / remove live coverage ----------
+    const findMention = (id) => mentions.find((m) => m.id === id) || (archivedMentions || []).find((m) => m.id === id) || null;
+    const dropMention = (id) => {
+      mentions = mentions.filter((m) => m.id !== id);
+      if (archivedMentions) archivedMentions = archivedMentions.filter((m) => m.id !== id);
+    };
+
+    async function loadArchivedMentions() {
+      try {
+        archivedMentions = (await api('/api/mentions?view=archived')).mentions;
+      } catch (e) {
+        archivedMentions = archivedMentions || [];
+        toast(e.message, 'error');
+      }
+      renderLive();
+    }
+
+    function setLiveView(view) {
+      liveView = view;
+      liveExpanded = false;
+      renderLive();
+      if (view === 'archived') loadArchivedMentions();
+    }
+
+    function editMention(id) {
+      const m = findMention(id);
+      if (!m) return;
+      MOEST.coverage.edit(m, (updated) => {
+        for (const list of [mentions, archivedMentions || []]) {
+          const i = list.findIndex((x) => x.id === id);
+          if (i >= 0) list[i] = { ...list[i], ...updated };
+        }
+        renderLive();
+      });
+    }
+
+    function archiveMention(id, archived) {
+      const m = findMention(id);
+      if (!m) return;
+      MOEST.coverage.archive(m, archived, (updated) => {
+        dropMention(id);
+        if (archived && archivedMentions) archivedMentions.unshift({ ...m, ...updated });
+        renderLive();
+        if (!archived) loadMentions();
+      });
+    }
+
+    function removeMention(id) {
+      const m = findMention(id);
+      if (!m) return;
+      MOEST.coverage.remove(m, () => { dropMention(id); renderLive(); });
     }
 
     // ---------- Related links ----------
@@ -626,16 +718,44 @@
       } catch (err) { toast(err.message, 'error'); }
     }
 
-    async function deleteStory() {
-      const id = Number(document.getElementById('storyForm').storyId.value);
+    async function deleteStory(storyId) {
+      const id = storyId || Number(document.getElementById('storyForm').storyId.value);
       if (!id || !confirm('Delete this story and its related links? This cannot be undone.')) return;
       try {
         await api(`/api/stories/${id}`, { method: 'DELETE' });
         stories = stories.filter((s) => s.id !== id);
         closeStoryModal();
         render();
+        renderLive();
         toast('Story deleted');
       } catch (err) { toast(err.message, 'error'); }
+    }
+
+    async function archiveStory(id, archived) {
+      try {
+        const updated = await api(`/api/stories/${id}`, { method: 'PATCH', body: { archived } });
+        const i = stories.findIndex((s) => s.id === id);
+        if (i >= 0) stories[i] = { ...stories[i], ...updated };
+        storiesSig = '';
+        render();
+        toast(archived ? 'Story archived. Find it under Archived.' : 'Story restored to the library');
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    function setLibraryView(view) {
+      libraryView = view;
+      render();
+    }
+
+    // Highlights the selected button of a segmented toggle.
+    function paintToggle(attr, value) {
+      document.querySelectorAll(`[data-${attr}]`).forEach((b) => {
+        const on = b.getAttribute(`data-${attr}`) === value;
+        b.setAttribute('aria-pressed', on);
+        b.classList.toggle('bg-white', on); b.classList.toggle('dark:bg-slate-950', on);
+        b.classList.toggle('text-bahama-aqua', on); b.classList.toggle('shadow-sm', on);
+        b.classList.toggle('text-slate-500', !on);
+      });
     }
   </script>
 </body>
