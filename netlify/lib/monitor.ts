@@ -1,9 +1,13 @@
-// Media monitor: pulls Bahamian news and social feeds, keeps education-related
-// items, scores sentiment and stores new mentions in the database.
+// Media monitor: pulls Bahamian news and social feeds, keeps only items with a
+// direct link to MOEST or its leadership (see relevance.ts), scores sentiment and
+// stores new mentions in the database.
 import Anthropic from "@anthropic-ai/sdk";
 import { and, eq, gte, inArray, max } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { mediaMentions, monitorSources } from "../../db/schema.js";
+import { isRelevant, SCOPE_DESCRIPTION } from "./relevance.js";
+
+export { isRelevant };
 
 type Source = {
   key: string;
@@ -11,7 +15,7 @@ type Source = {
   channel: string;
   url: string;
   outlet?: string; // fixed outlet name; Google News items carry their own
-  filter: boolean; // only keep items matching education keywords
+  filter: boolean; // only keep items that directly reference MOEST or its leadership
   kind?: "rss" | "facebook";
   minIntervalMs?: number; // check less often than every minute
 };
@@ -19,14 +23,19 @@ type Source = {
 const gnews = (q: string) =>
   `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
 
-const EDU = "(school OR schools OR education OR students OR teachers OR BGCSE OR BJC)";
-const site = (domain: string) => gnews(`site:${domain} ${EDU} when:7d`);
+// Search terms for the Ministry and its leadership.
+const SCOPE =
+  '("Ministry of Education" OR MOEST OR "Minister of Education" OR "Education Minister" OR "Director of Education" ' +
+  'OR "Chester Cooper" OR "McCartney-Russell" OR "Neil Campbell")';
+const site = (domain: string) => gnews(`site:${domain} ${SCOPE} when:7d`);
 
+// Every source is filtered: an item is stored only if it names the Ministry or one
+// of its three leaders, and the AI review then drops anything without a direct link.
 export const SOURCES: Source[] = [
-  { key: "gnews-ministry", name: "Google News: Ministry of Education", channel: "News", filter: false,
-    url: gnews('"Ministry of Education" Bahamas when:7d') },
-  { key: "gnews-higher-ed", name: "Google News: UB, BTVI & teachers' union", channel: "News", filter: false,
-    url: gnews('("University of The Bahamas" OR BTVI OR "Bahamas Union of Teachers") when:7d') },
+  { key: "gnews-ministry", name: "Google News: Ministry of Education", channel: "News", filter: true,
+    url: gnews('("Ministry of Education" OR MOEST OR "Minister of Education" OR "Education Minister" OR "Director of Education") Bahamas when:7d') },
+  { key: "gnews-leadership", name: "Google News: Minister Cooper, Director McCartney-Russell & PS Campbell", channel: "News", filter: true,
+    url: gnews('("Chester Cooper" OR "McCartney-Russell" OR "Dominique McCartney" OR "Neil Campbell") Bahamas when:7d') },
   { key: "gnews-guardian", name: "The Nassau Guardian", channel: "News", outlet: "The Nassau Guardian", filter: true,
     url: site("thenassauguardian.com") },
   { key: "gnews-ewnews", name: "EyeWitness News", channel: "News", outlet: "EyeWitness News", filter: true,
@@ -46,6 +55,9 @@ export const SOURCES: Source[] = [
   { key: "reddit-bahamas", name: "r/Bahamas (Reddit)", channel: "Reddit", outlet: "r/Bahamas", filter: true,
     url: "https://www.reddit.com/r/Bahamas/new/.rss?limit=50" },
 ];
+
+// Sources that used to be monitored and no longer are; their status rows are removed.
+const RETIRED_SOURCES = ["gnews-higher-ed"];
 
 // ---------- Facebook: public Pages of Bahamian news outlets ----------
 // Read through Meta's Graph API with an app token that has "Page Public Content Access".
@@ -119,12 +131,6 @@ async function fetchFacebook(src: Source): Promise<(RawItem & { outlet: string }
 const MAX_AGE_MS = 7 * 24 * 3600_000;
 const UA = "Mozilla/5.0 (compatible; MOESTMediaMonitor/1.0; +https://ministryofeducationbahamas.netlify.app)";
 
-// ---------- Relevance ----------
-const KEYWORDS_CI =
-  /\b(education|educat\w*|schools?|students?|teachers?|pupils?|classrooms?|principals?|curriculum|scholarships?|exams?|examinations?|bgcse|bjc|preschool|pre-school|kindergarten|graduat\w*|literacy|university of the bahamas|minister of education|ministry of education|tvet|truancy|school bus\w*|back.to.school|high school|all.age|college|academy|science fair|belinda wilson|youth parliament|textbooks?|tuition)\b/i;
-const KEYWORDS_CS = /\b(MOEST|BTVI|BUT|UB|BGCSE|BJC|BHSD)\b/;
-export const isRelevant = (text: string) => KEYWORDS_CI.test(text) || KEYWORDS_CS.test(text);
-
 // ---------- Tiny RSS / Atom parser ----------
 const decode = (s: string) =>
   s
@@ -196,7 +202,7 @@ const HEURISTIC_TOPICS: [RegExp, string][] = [
 ];
 const heuristicTopics = (text: string) => HEURISTIC_TOPICS.filter(([re]) => re.test(text)).map(([, t]) => t).slice(0, 3).join(" ");
 
-type Analysis = { id: number; sentiment: string; priority: boolean; topics: string };
+type Analysis = { id: number; relevant: boolean; sentiment: string; priority: boolean; topics: string };
 
 export async function analyzeWithAI(items: { id: number; title: string; summary: string; outlet: string }[]): Promise<Analysis[]> {
   const anthropic = new Anthropic();
@@ -206,21 +212,26 @@ export async function analyzeWithAI(items: { id: number; title: string; summary:
     max_tokens: 2000,
     system:
       "You are a media analyst for the Ministry of Education, Science and Technology (MOEST) of The Bahamas. " +
-      "For each news or social media item, judge its sentiment toward Bahamian education and the Ministry: " +
+      `First decide relevant: true ONLY if the item is directly about ${SCOPE_DESCRIPTION} — ` +
+      "e.g. it reports their actions, statements, policies, programmes or decisions, or criticism aimed at them. " +
+      "Set relevant=false for general school, teacher, university or union news that merely mentions education, " +
+      "for other countries' ministries of education, and for a different person who happens to share one of those names. " +
+      "For each item, judge its sentiment toward Bahamian education and the Ministry: " +
       "POSITIVE (good news, achievements, investments), NEGATIVE (problems, complaints, criticism, safety incidents in schools) or NEUTRAL. " +
       "Set priority=true only when the item likely needs a Ministry communications response (public criticism, school safety, outages, disputes). " +
       "Give 1-3 short CamelCase hashtags describing the topic (e.g. #SchoolSafety, #BGCSE2026, #TeacherPay). " +
-      'Reply with ONLY a JSON array: [{"id":number,"sentiment":"POSITIVE|NEUTRAL|NEGATIVE","priority":boolean,"topics":["#Tag"]}]',
+      'Reply with ONLY a JSON array: [{"id":number,"relevant":boolean,"sentiment":"POSITIVE|NEUTRAL|NEGATIVE","priority":boolean,"topics":["#Tag"]}]',
     messages: [{ role: "user", content: JSON.stringify(list) }],
   });
   const text = msg.content.map((c) => (c.type === "text" ? c.text : "")).join("");
   const json = text.slice(text.indexOf("["), text.lastIndexOf("]") + 1);
-  const parsed = JSON.parse(json) as { id: number; sentiment: string; priority: boolean; topics: string[] }[];
+  const parsed = JSON.parse(json) as { id: number; relevant?: boolean; sentiment: string; priority: boolean; topics: string[] }[];
   const valid = new Set(["POSITIVE", "NEUTRAL", "NEGATIVE"]);
   return parsed
     .filter((p) => items.some((i) => i.id === p.id))
     .map((p) => ({
       id: p.id,
+      relevant: p.relevant !== false,
       sentiment: valid.has(p.sentiment) ? p.sentiment : "NEUTRAL",
       priority: Boolean(p.priority),
       topics: (Array.isArray(p.topics) ? p.topics : [])
@@ -323,7 +334,7 @@ export async function runMonitor() {
       const results = await analyzeWithAI(pending);
       for (const a of results) {
         await db.update(mediaMentions)
-          .set({ sentiment: a.sentiment, priority: a.priority, topics: a.topics || undefined, analyzed: true })
+          .set({ relevant: a.relevant, sentiment: a.sentiment, priority: a.priority, topics: a.topics || undefined, analyzed: true })
           .where(eq(mediaMentions.id, a.id));
       }
       analyzed = results.length;
@@ -335,6 +346,8 @@ export async function runMonitor() {
       console.error("Sentiment analysis failed; keeping keyword scores", e);
     }
   }
+
+  await db.delete(monitorSources).where(inArray(monitorSources.key, RETIRED_SOURCES));
 
   const failed = due.filter((_, i) => results[i].status === "rejected").map((s) => s.key);
   console.log(`Media monitor: ${inserted} new, ${analyzed} analysed, failed sources: ${failed.join(", ") || "none"}`);

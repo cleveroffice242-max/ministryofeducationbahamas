@@ -1,0 +1,1 @@
+ALTER TABLE "media_mentions" ADD COLUMN "relevant" boolean DEFAULT true NOT NULL;

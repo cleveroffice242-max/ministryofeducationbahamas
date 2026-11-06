@@ -53,9 +53,9 @@ const seedStories = [
     sourceUrl: "https://www.tribune242.com/",
     publishedAt: hoursAgo(1),
     summary:
-      "National examination registration recorded a 5% rise in STEM subject enrollment, and the Examination & Assessment Division confirmed all centres are prepared across Grand Bahama and New Providence.",
+      "National examination registration recorded a 5% rise in STEM subject enrollment, and the Ministry of Education's Examination & Assessment Division confirmed all centres are prepared across Grand Bahama and New Providence.",
     body:
-      "Registration figures for the 2026 BGCSE and BJC national examinations show a record number of candidates sitting STEM subjects, with enrolment up five percent year on year.\n\nThe Examination and Assessment Division confirmed that all examination centres in Grand Bahama and New Providence have completed readiness inspections, and that Family Island centres are on schedule.\n\nEducators credit expanded STEM lab access and teacher training for the increase. The Ministry is encouraging candidates to review the official examination timetable published on its website.",
+      "Registration figures for the 2026 BGCSE and BJC national examinations show a record number of candidates sitting STEM subjects, with enrolment up five percent year on year.\n\nThe Examination and Assessment Division confirmed that all examination centres in Grand Bahama and New Providence have completed readiness inspections, and that Family Island centres are on schedule.\n\nEducators credit expanded STEM lab access and teacher training for the increase. The Ministry of Education is encouraging candidates to review the official examination timetable published on its website.",
     imageUrl: img("photo-1532094349884-543bc11b234d"),
     imageCaption: "Students in a science laboratory (illustrative photo).",
     videoUrl: null,
@@ -97,24 +97,6 @@ const seedStories = [
     videoUrl: null,
     sentiment: "POSITIVE",
     tags: "#BHSD #BahamasEducation #MOEST",
-  },
-  {
-    slug: "btvi-exuma-upgrades",
-    title: "BTVI Extension Campus Upgrades in George Town Welcomed by Exuma Parents",
-    outlet: "Parent Teacher Voice Exuma",
-    handle: "@ExumaParents",
-    channel: "Instagram",
-    sourceUrl: "https://www.instagram.com/explore/tags/exuma/",
-    publishedAt: hoursAgo(4),
-    summary:
-      "Exuma parents praised facility upgrades at the BTVI extension campus in George Town, citing new opportunities for graduates to continue training on-island.",
-    body:
-      "An Instagram post from Parent Teacher Voice Exuma celebrated ongoing facility upgrades at the BTVI extension campus in George Town.\n\nParents highlighted the value of being able to pursue technical and vocational training without relocating to New Providence. New course offerings are expected to be announced for the coming semester.",
-    imageUrl: img("photo-1581092160562-40aa08e78837"),
-    imageCaption: "Technical training workshop (illustrative photo).",
-    videoUrl: null,
-    sentiment: "POSITIVE",
-    tags: "#STEMBahamas #Exuma #MOESTBahamas",
   },
   {
     slug: "digital-literacy-curriculum",
