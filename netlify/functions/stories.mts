@@ -2,7 +2,6 @@ import type { Config, Context } from "@netlify/functions";
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { stories, storyLinks } from "../../db/schema.js";
-import { ensureSeeded } from "../../db/seed.js";
 import { error, json, oneOf, parseId, readBody, safeUrl, str } from "../lib/http.js";
 import { isRelevant } from "../lib/relevance.js";
 
@@ -40,7 +39,6 @@ export default async (req: Request, context: Context) => {
   if (id === null) return error("Invalid story id", 404);
 
   if (req.method === "GET") {
-    await ensureSeeded();
     const rows = id
       ? await db.select().from(stories).where(eq(stories.id, id))
       : await db.select().from(stories).orderBy(desc(stories.publishedAt));

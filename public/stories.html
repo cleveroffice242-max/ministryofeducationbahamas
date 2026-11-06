@@ -304,7 +304,7 @@
       const container = document.getElementById('storiesList');
       if (!list.length) {
         container.innerHTML = `<div class="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
-          <i class="fa-solid fa-folder-open text-3xl mb-2"></i><p class="text-xs">No stories match your filters.</p></div>`;
+          <i class="fa-solid fa-folder-open text-3xl mb-2"></i><p class="text-xs">${stories.length ? 'No stories match your filters.' : 'No stories logged yet. Use Log New Story to add coverage with its original article link.'}</p></div>`;
         return;
       }
       container.innerHTML = list.map(storyCard).join('');
